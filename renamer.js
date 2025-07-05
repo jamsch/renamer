@@ -82,7 +82,7 @@ const RULE_LABELS = {
  */
 
 class FileRenamer {
-  renameResults = new Map();
+  renameResults = createSignal(/** @type {Map<string, import('./types.d.ts').RenameResult>} */ (new Map()));
   ruleSignals = createSignal(/** @type {RuleSignalObject[]} */ ([]));
   selectedRuleIndex = createSignal(/** @type {number | null} */ (null));
   fileSignals = createSignal(/** @type {FileSignalObject[]} */ ([]));
@@ -1056,7 +1056,8 @@ class FileRenamer {
     const newFiles = [];
 
     // Clear rename results when adding new files
-    this.renameResults.clear();
+    const [, setRenameResults] = this.renameResults;
+    setRenameResults(new Map());
 
     for (const file of files) {
       let filePath = "";
@@ -1156,7 +1157,8 @@ class FileRenamer {
   clearAllFiles() {
     const [, setFiles] = this.fileSignals;
     setFiles([]);
-    this.renameResults.clear();
+    const [, setRenameResults] = this.renameResults;
+    setRenameResults(new Map());
   }
 
   /**
@@ -1223,10 +1225,12 @@ class FileRenamer {
     const failed = results.filter((r) => !r.success);
 
     // Store results for display in table
-    this.renameResults.clear();
+    const [, setRenameResults] = this.renameResults;
+    const newResultsMap = new Map();
     results.forEach((result) => {
-      this.renameResults.set(result.originalName, result);
+      newResultsMap.set(result.originalName, result);
     });
+    setRenameResults(newResultsMap);
 
     // Show summary message
     let message = `Renamed ${successful.length} file(s) successfully.`;
@@ -1246,7 +1250,8 @@ class FileRenamer {
         const [getPath, setPath] = fileSignal.pathSignal;
 
         const originalName = getName();
-        const renameResult = this.renameResults.get(originalName);
+        const [getRenameResults] = this.renameResults;
+        const renameResult = getRenameResults().get(originalName);
 
         if (renameResult && renameResult.success && renameResult.newName) {
           // Update the file name to the new name
@@ -1380,9 +1385,13 @@ class FileRenamer {
 
     createEffect(() => {
       const [getName] = fileSignal.nameSignal;
+      const [getRenameResults] = this.renameResults;
+      
       const originalName = getName();
+      const resultsMap = getRenameResults();
+      
       // Handle rename results and show status in error column
-      const renameResult = this.renameResults.get(originalName);
+      const renameResult = resultsMap.get(originalName);
       const hasError = renameResult && !renameResult.success;
       if (hasError) {
         errorCell.innerHTML = `<span class="error-icon">❌</span> ${
