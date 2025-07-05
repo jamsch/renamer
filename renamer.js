@@ -1194,18 +1194,38 @@ class FileRenamer {
     try {
       // Prepare rename operations with computed names
       /** @type {RenameOperation[]} */
-      const renameOperations = files.map((fileSignal) => {
+      const allOperations = files.map((fileSignal) => {
         const [getPath] = fileSignal.pathSignal;
         const [getName] = fileSignal.nameSignal;
+        const originalName = getName();
         return {
           originalPath: getPath(),
-          originalName: getName(),
-          newName: this.applyRulesLocally(getName(), rules),
+          originalName: originalName,
+          newName: this.applyRulesLocally(originalName, rules),
         };
       });
 
+      // Filter to only operations where the name actually changes
+      const renameOperations = allOperations.filter(op => op.originalName !== op.newName);
+      
+      if (renameOperations.length === 0) {
+        this.showToast("No files need renaming - all names are unchanged", "warning");
+        return;
+      }
+
       const results = await window.electronAPI.renameFiles(renameOperations);
-      this.displayResults(results);
+      
+      // Create results for unchanged files too (success with no actual rename)
+      const unchangedResults = allOperations
+        .filter(op => op.originalName === op.newName)
+        .map(op => ({
+          originalName: op.originalName,
+          newName: op.originalName,
+          success: true,
+          unchanged: true
+        }));
+      
+      this.displayResults([...results, ...unchangedResults]);
     } catch (error) {
       console.error("Rename error:", error);
       this.showToast(
