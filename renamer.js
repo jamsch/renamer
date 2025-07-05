@@ -1158,13 +1158,13 @@ class FileRenamer {
     const [getFiles] = this.fileSignals;
     const files = getFiles();
     if (files.length === 0) {
-      alert("Please add some files first");
+      this.showToast("Please add some files first", "warning");
       return;
     }
 
     const rules = this.getRulesFromSignals();
     if (rules.length === 0) {
-      alert("Please add at least one rule");
+      this.showToast("Please add at least one rule", "warning");
       return;
     }
 
@@ -1185,9 +1185,10 @@ class FileRenamer {
       this.displayResults(results);
     } catch (error) {
       console.error("Rename error:", error);
-      alert(
+      this.showToast(
         "Error renaming files: " +
-          (error instanceof Error ? error.message : "Unknown error")
+          (error instanceof Error ? error.message : "Unknown error"),
+        "error"
       );
     }
   }
@@ -1212,7 +1213,7 @@ class FileRenamer {
       message += `\n${failed.length} file(s) failed to rename. See table for details.`;
     }
 
-    alert(message);
+    this.showToast(message, failed.length > 0 ? "warning" : "success");
 
     // Update file names in the list for successfully renamed files
     if (successful.length > 0) {
@@ -1258,14 +1259,17 @@ class FileRenamer {
    * Add folders functionality (placeholder)
    */
   addFolders() {
-    alert("Add Folders functionality not yet implemented");
+    this.showToast("Add Folders functionality not yet implemented", "warning");
   }
 
   /**
    * Preview changes functionality
    */
   previewChanges() {
-    alert("Preview updated - check the file table for changes");
+    this.showToast(
+      "Preview updated - check the file table for changes",
+      "success"
+    );
   }
 
   /**
@@ -1371,6 +1375,50 @@ class FileRenamer {
     });
 
     return errorCell;
+  }
+
+  /**
+   * Show a toast notification
+   * @param {string} message - The message to display
+   * @param {'success' | 'warning' | 'error'} type - The type of toast
+   */
+  showToast(message, type = "success") {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById("toast-container");
+    if (!toastContainer) {
+      toastContainer = h("div", {
+        id: "toast-container",
+        className: "toast-container",
+      });
+      document.body.appendChild(toastContainer);
+    }
+
+    // Create toast element
+    const toast = h(
+      "div",
+      {
+        className: `toast toast-${type}`,
+      },
+      message
+    );
+
+    // Add to container
+    toastContainer.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => {
+      toast.classList.add("show");
+    }, 10);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300); // Wait for fade out animation
+    }, 5000);
   }
 
   /**
