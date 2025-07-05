@@ -582,7 +582,12 @@ class FileRenamer {
    * @returns {string}
    */
   applyRulesLocally(filename, rules) {
-    let result = filename;
+    // Separate filename from extension
+    const lastDotIndex = filename.lastIndexOf(".");
+    const hasExtension = lastDotIndex > 0;
+    
+    let nameWithoutExt = hasExtension ? filename.substring(0, lastDotIndex) : filename;
+    const ext = hasExtension ? filename.substring(lastDotIndex) : "";
 
     for (const rule of rules) {
       switch (rule.type) {
@@ -590,7 +595,7 @@ class FileRenamer {
           if (rule.pattern && rule.replacement !== undefined) {
             try {
               const regex = new RegExp(rule.pattern, rule.flags || "g");
-              result = result.replace(regex, rule.replacement);
+              nameWithoutExt = nameWithoutExt.replace(regex, rule.replacement);
             } catch (error) {
               // Invalid regex, skip this rule
               console.warn("Invalid regex pattern:", rule.pattern);
@@ -599,54 +604,40 @@ class FileRenamer {
           break;
         case "replace":
           if (rule.search && rule.replacement !== undefined) {
-            result = result.split(rule.search).join(rule.replacement);
+            nameWithoutExt = nameWithoutExt.split(rule.search).join(rule.replacement);
           }
           break;
         case "trim":
           if (rule.position === "start" && rule.count) {
-            result = result.substring(rule.count);
+            nameWithoutExt = nameWithoutExt.substring(rule.count);
           } else if (rule.position === "end" && rule.count) {
-            result = result.substring(0, result.length - rule.count);
+            nameWithoutExt = nameWithoutExt.substring(0, nameWithoutExt.length - rule.count);
           }
           break;
         case "prefix":
           if (rule.text) {
-            result = rule.text + result;
+            nameWithoutExt = rule.text + nameWithoutExt;
           }
           break;
         case "suffix":
           if (rule.text) {
-            const lastDotIndex = result.lastIndexOf(".");
-            if (lastDotIndex > 0) {
-              const nameWithoutExt = result.substring(0, lastDotIndex);
-              const ext = result.substring(lastDotIndex);
-              result = nameWithoutExt + rule.text + ext;
-            } else {
-              result = result + rule.text;
-            }
+            nameWithoutExt = nameWithoutExt + rule.text;
           }
           break;
         case "insert-prefix":
           if (rule.text) {
-            result = rule.text + result;
+            nameWithoutExt = rule.text + nameWithoutExt;
           }
           break;
         case "insert-suffix":
           if (rule.text) {
-            const lastDotIndex = result.lastIndexOf(".");
-            if (lastDotIndex > 0) {
-              const nameWithoutExt = result.substring(0, lastDotIndex);
-              const ext = result.substring(lastDotIndex);
-              result = nameWithoutExt + rule.text + ext;
-            } else {
-              result = result + rule.text;
-            }
+            nameWithoutExt = nameWithoutExt + rule.text;
           }
           break;
       }
     }
 
-    return result;
+    return nameWithoutExt + ext;
   }
 
   /**
