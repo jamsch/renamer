@@ -385,61 +385,30 @@ class FileRenamer {
       fileTableBody.innerHTML = "";
 
       // Rebuild all rows
-      files.forEach((fileSignal, index) => {
+      for (let index = 0; index < files.length; index++) {
+        const fileSignal = files[index];
+
+        const nameCell = this.createNameCell(fileSignal);
+        const previewCell = this.createPreviewCell(fileSignal);
+        const errorCell = this.createErrorCell(fileSignal);
+        const checkboxCell = this.createCheckboxCell(fileSignal);
+
         const row = h("tr", {
           className: "file-row",
           onclick: (e) => this.handleFileRowClick(e, index),
         });
 
-        const checkboxCell = h("td", null);
-        const nameCell = h("td", { className: "original-name" });
-        const previewCell = h("td", { className: "new-name" });
-        const errorCell = h("td", { className: "error-message" });
-
-        // Create checkbox for selection
-        const checkbox = h("input", {
-          type: "checkbox",
-          onclick: (e) => {
-            e.stopPropagation(); // Prevent row click when clicking checkbox
-            const [, setSelected] = fileSignal.selectedSignal;
-            setSelected(checkbox.checked);
-          },
-        });
-        checkboxCell.appendChild(checkbox);
-
         row.append(checkboxCell, nameCell, previewCell, errorCell);
+
         fileTableBody.appendChild(row);
 
         // Reactive updates for this row
         createEffect(() => {
-          const isSelected = fileSignal.selectedSignal[0]();
+          const [getSelected] = fileSignal.selectedSignal;
+          const isSelected = getSelected();
           row.className = "file-row" + (isSelected ? " selected" : "");
-          checkbox.checked = isSelected;
-
-          nameCell.textContent = fileSignal.nameSignal[0]();
-
-          // Apply rules to get preview
-          const originalName = fileSignal.nameSignal[0]();
-          const rules = this.getRulesFromSignals();
-          const previewName = this.applyRulesLocally(originalName, rules);
-          previewCell.textContent = previewName;
-          previewCell.className =
-            "new-name" + (previewName === originalName ? " unchanged" : "");
-
-          // Handle rename results and show status in error column
-          const renameResult = this.renameResults.get(originalName);
-          const hasError = renameResult && !renameResult.success;
-          if (hasError) {
-            errorCell.innerHTML = `<span class="error-icon">❌</span> ${
-              renameResult.error || "Unknown error"
-            }`;
-          } else if (renameResult && renameResult.success) {
-            errorCell.innerHTML = `<span class="success-icon">✅</span> Renamed successfully`;
-          } else {
-            errorCell.textContent = "";
-          }
         });
-      });
+      }
     });
 
     // Monitor selection changes to update header checkbox
@@ -450,7 +419,8 @@ class FileRenamer {
       // Create a derived signal that tracks selection state
       files.forEach((file) => {
         createEffect(() => {
-          file.selectedSignal[0](); // Track selection changes
+          const [getSelected] = file.selectedSignal;
+          getSelected(); // Track selection changes
           this.updateHeaderCheckbox();
         });
       });
@@ -470,7 +440,10 @@ class FileRenamer {
       // Shift selection - select range
       const selectedIndices = files
         .map((_, i) => i)
-        .filter((i) => files[i].selectedSignal[0]());
+        .filter((i) => {
+          const [getSelected] = files[i].selectedSignal;
+          return getSelected();
+        });
 
       if (selectedIndices.length > 0) {
         const firstSelected = selectedIndices[0];
@@ -478,23 +451,33 @@ class FileRenamer {
         const end = Math.max(index, firstSelected);
 
         // Clear all selections
-        files.forEach((file) => file.selectedSignal[1](false));
+        files.forEach((file) => {
+          const [, setSelected] = file.selectedSignal;
+          setSelected(false);
+        });
 
         // Select range
         for (let i = start; i <= end; i++) {
-          files[i].selectedSignal[1](true);
+          const [, setSelected] = files[i].selectedSignal;
+          setSelected(true);
         }
       } else {
-        files[index].selectedSignal[1](true);
+        const [, setSelected] = files[index].selectedSignal;
+        setSelected(true);
       }
     } else if (e.ctrlKey || e.metaKey) {
       // Multi-selection with Ctrl/Cmd
-      const currentSelection = files[index].selectedSignal[0]();
-      files[index].selectedSignal[1](!currentSelection);
+      const [getSelected, setSelected] = files[index].selectedSignal;
+      const currentSelection = getSelected();
+      setSelected(!currentSelection);
     } else {
       // Single selection
-      files.forEach((file) => file.selectedSignal[1](false));
-      files[index].selectedSignal[1](true);
+      files.forEach((file) => {
+        const [, setSelected] = file.selectedSignal;
+        setSelected(false);
+      });
+      const [, setSelected] = files[index].selectedSignal;
+      setSelected(true);
     }
   }
 
@@ -1115,7 +1098,10 @@ class FileRenamer {
   removeSelectedFiles() {
     const [getFiles, setFiles] = this.fileSignals;
     const files = getFiles();
-    const newFiles = files.filter((file) => !file.selectedSignal[0]());
+    const newFiles = files.filter((file) => {
+      const [getSelected] = file.selectedSignal;
+      return !getSelected();
+    });
     setFiles(newFiles);
   }
 
@@ -1125,7 +1111,10 @@ class FileRenamer {
   selectAllFiles() {
     const [getFiles] = this.fileSignals;
     const files = getFiles();
-    files.forEach((file) => file.selectedSignal[1](true));
+    files.forEach((file) => {
+      const [, setSelected] = file.selectedSignal;
+      setSelected(true);
+    });
   }
 
   /**
@@ -1134,7 +1123,10 @@ class FileRenamer {
   deselectAllFiles() {
     const [getFiles] = this.fileSignals;
     const files = getFiles();
-    files.forEach((file) => file.selectedSignal[1](false));
+    files.forEach((file) => {
+      const [, setSelected] = file.selectedSignal;
+      setSelected(false);
+    });
   }
 
   /**
@@ -1153,8 +1145,9 @@ class FileRenamer {
     const [getFiles] = this.fileSignals;
     const files = getFiles();
     files.forEach((file) => {
-      const currentSelection = file.selectedSignal[0]();
-      file.selectedSignal[1](!currentSelection);
+      const [getSelected, setSelected] = file.selectedSignal;
+      const currentSelection = getSelected();
+      setSelected(!currentSelection);
     });
   }
 
@@ -1175,22 +1168,18 @@ class FileRenamer {
       return;
     }
 
-    if (
-      !confirm(
-        "Are you sure you want to rename these files? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
-
     try {
       // Prepare rename operations with computed names
       /** @type {RenameOperation[]} */
-      const renameOperations = files.map((fileSignal) => ({
-        originalPath: fileSignal.pathSignal[0](),
-        originalName: fileSignal.nameSignal[0](),
-        newName: this.applyRulesLocally(fileSignal.nameSignal[0](), rules),
-      }));
+      const renameOperations = files.map((fileSignal) => {
+        const [getPath] = fileSignal.pathSignal;
+        const [getName] = fileSignal.nameSignal;
+        return {
+          originalPath: getPath(),
+          originalName: getName(),
+          newName: this.applyRulesLocally(getName(), rules),
+        };
+      });
 
       const results = await window.electronAPI.renameFiles(renameOperations);
       this.displayResults(results);
@@ -1225,14 +1214,43 @@ class FileRenamer {
 
     alert(message);
 
-    // Remove successfully renamed files from the list
+    // Update file names in the list for successfully renamed files
     if (successful.length > 0) {
-      const [getFiles, setFiles] = this.fileSignals;
-      const successfulNames = new Set(successful.map((r) => r.originalName));
-      const newFiles = getFiles().filter(
-        (fileSignal) => !successfulNames.has(fileSignal.nameSignal[0]())
-      );
-      setFiles(newFiles);
+      const [getFiles] = this.fileSignals;
+      const files = getFiles();
+
+      files.forEach((fileSignal) => {
+        const [getName, setName] = fileSignal.nameSignal;
+        const [getPath, setPath] = fileSignal.pathSignal;
+
+        const originalName = getName();
+        const renameResult = this.renameResults.get(originalName);
+
+        if (renameResult && renameResult.success && renameResult.newName) {
+          // Update the file name to the new name
+          setName(renameResult.newName);
+
+          // Update the path to reflect the new name
+          const originalPath = getPath();
+          // Only replace the filename at the end of the path, not any substring
+          const lastSlashIndex = originalPath.lastIndexOf("/");
+          const lastBackslashIndex = originalPath.lastIndexOf("\\");
+          const lastSeparatorIndex = Math.max(
+            lastSlashIndex,
+            lastBackslashIndex
+          );
+
+          if (lastSeparatorIndex >= 0) {
+            // Path has a directory separator, replace only the filename part
+            const directory = originalPath.substring(0, lastSeparatorIndex + 1);
+            const newPath = directory + renameResult.newName;
+            setPath(newPath);
+          } else {
+            // No directory separator, treat the entire path as filename
+            setPath(renameResult.newName);
+          }
+        }
+      });
     }
   }
 
@@ -1262,6 +1280,100 @@ class FileRenamer {
   }
 
   /**
+   * Create a name cell that displays the original filename
+   * @param {FileSignalObject} fileSignal
+   * @returns {HTMLTableCellElement}
+   */
+  createNameCell(fileSignal) {
+    const nameCell = h("td", { className: "original-name" });
+
+    createEffect(() => {
+      const [getName] = fileSignal.nameSignal;
+      nameCell.textContent = getName();
+    });
+
+    return nameCell;
+  }
+
+  /**
+   * Create a checkbox cell for file selection
+   * @param {FileSignalObject} fileSignal
+   * @returns {HTMLTableCellElement}
+   */
+  createCheckboxCell(fileSignal) {
+    // Create checkbox for selection
+    const checkbox = h("input", {
+      type: "checkbox",
+      onclick: (e) => {
+        e.stopPropagation(); // Prevent row click when clicking checkbox
+        const [, setSelected] = fileSignal.selectedSignal;
+        setSelected(checkbox.checked);
+      },
+    });
+
+    const checkboxCell = h("td", null, checkbox);
+
+    // Reactive updates for this checkbox
+    createEffect(() => {
+      const [getSelected] = fileSignal.selectedSignal;
+      const isSelected = getSelected();
+      checkbox.checked = isSelected;
+    });
+
+    return checkboxCell;
+  }
+
+  /**
+   * Create a preview cell that shows the new filename after applying rules
+   * @param {FileSignalObject} fileSignal
+   * @returns {HTMLTableCellElement}
+   */
+  createPreviewCell(fileSignal) {
+    const previewCell = h("td", { className: "new-name" });
+
+    createEffect(() => {
+      const [getName] = fileSignal.nameSignal;
+      // Apply rules to get preview
+      const originalName = getName();
+      const rules = this.getRulesFromSignals();
+      const previewName = this.applyRulesLocally(originalName, rules);
+      previewCell.textContent = previewName;
+      previewCell.className =
+        "new-name" + (previewName === originalName ? " unchanged" : "");
+    });
+
+    return previewCell;
+  }
+
+  /**
+   * Create an error cell that displays rename results
+   * @param {FileSignalObject} fileSignal
+   * @returns {HTMLTableCellElement}
+   */
+  createErrorCell(fileSignal) {
+    const errorCell = h("td", { className: "error-message" });
+
+    createEffect(() => {
+      const [getName] = fileSignal.nameSignal;
+      const originalName = getName();
+      // Handle rename results and show status in error column
+      const renameResult = this.renameResults.get(originalName);
+      const hasError = renameResult && !renameResult.success;
+      if (hasError) {
+        errorCell.innerHTML = `<span class="error-icon">❌</span> ${
+          renameResult.error || "Unknown error"
+        }`;
+      } else if (renameResult && renameResult.success) {
+        errorCell.innerHTML = `<span class="success-icon">✅</span> Renamed successfully`;
+      } else {
+        errorCell.textContent = "";
+      }
+    });
+
+    return errorCell;
+  }
+
+  /**
    * Update the header checkbox state based on file selections
    */
   updateHeaderCheckbox() {
@@ -1279,7 +1391,10 @@ class FileRenamer {
       return;
     }
 
-    const selectedFiles = files.filter((file) => file.selectedSignal[0]());
+    const selectedFiles = files.filter((file) => {
+      const [getSelected] = file.selectedSignal;
+      return getSelected();
+    });
 
     if (selectedFiles.length === 0) {
       selectAllCheckbox.checked = false;
