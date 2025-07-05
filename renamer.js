@@ -1213,19 +1213,22 @@ class FileRenamer {
       
       if (renameOperations.length === 0) {
         this.showToast("No files need renaming - all names are unchanged", "warning");
+        // Clear rename results since no renaming is needed
+        const [, setRenameResults] = this.renameResults;
+        setRenameResults(new Map());
         return;
       }
 
       const results = await window.electronAPI.renameFiles(renameOperations);
       
-      // Create results for unchanged files too (success with no actual rename)
+      // Create results for unchanged files (mark as skipped)
       const unchangedResults = allOperations
         .filter(op => op.originalName === op.newName)
         .map(op => ({
           originalName: op.originalName,
           newName: op.originalName,
           success: true,
-          unchanged: true
+          skipped: true
         }));
       
       this.displayResults([...results, ...unchangedResults]);
@@ -1244,7 +1247,8 @@ class FileRenamer {
    * @param {RenameResult[]} results
    */
   displayResults(results) {
-    const successful = results.filter((r) => r.success);
+    const actuallyRenamed = results.filter((r) => r.success && !r.skipped);
+    const skipped = results.filter((r) => r.success && r.skipped);
     const failed = results.filter((r) => !r.success);
 
     // Store results for display in table
@@ -1256,15 +1260,18 @@ class FileRenamer {
     setRenameResults(newResultsMap);
 
     // Show summary message
-    let message = `Renamed ${successful.length} file(s) successfully.`;
+    let message = `Renamed ${actuallyRenamed.length} file(s) successfully.`;
+    if (skipped.length > 0) {
+      message += ` ${skipped.length} file(s) skipped (no changes needed).`;
+    }
     if (failed.length > 0) {
-      message += `\n${failed.length} file(s) failed to rename. See table for details.`;
+      message += ` ${failed.length} file(s) failed to rename. See table for details.`;
     }
 
     this.showToast(message, failed.length > 0 ? "warning" : "success");
 
     // Update file names in the list for successfully renamed files
-    if (successful.length > 0) {
+    if (actuallyRenamed.length > 0) {
       const [getFiles] = this.fileSignals;
       const files = getFiles();
 
@@ -1414,16 +1421,26 @@ class FileRenamer {
       const [getName] = fileSignal.nameSignal;
       const [getRenameResults] = this.renameResults;
       
-      const originalName = getName();
+      const currentName = getName();
       const resultsMap = getRenameResults();
       
+      // Try to find the rename result by checking both original and new names
+      let renameResult = null;
+      for (const [originalName, result] of resultsMap) {
+        if (originalName === currentName || result.newName === currentName) {
+          renameResult = result;
+          break;
+        }
+      }
+      
       // Handle rename results and show status in error column
-      const renameResult = resultsMap.get(originalName);
       const hasError = renameResult && !renameResult.success;
-      if (hasError) {
+      if (hasError && renameResult) {
         errorCell.innerHTML = `<span class="error-icon">❌</span> ${
           renameResult.error || "Unknown error"
         }`;
+      } else if (renameResult && renameResult.success && renameResult.skipped) {
+        errorCell.innerHTML = `<span class="skip-icon">⏭️</span> Skipped (no changes)`;
       } else if (renameResult && renameResult.success) {
         errorCell.innerHTML = `<span class="success-icon">✅</span> Renamed successfully`;
       } else {

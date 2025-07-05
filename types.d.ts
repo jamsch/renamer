@@ -96,6 +96,8 @@ export interface RenameResult {
   path?: string;
   /** Error message (if failed) */
   error?: string;
+  /** Whether the rename was skipped */
+  skipped?: boolean;
 }
 
 /**
