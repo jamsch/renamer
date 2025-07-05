@@ -47,6 +47,15 @@ body {
   gap: 4px;
 }
 
+.file-actions {
+  background: #f1f3f5;
+  border-bottom: 1px solid #ddd;
+  padding: 6px 8px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .toolbar-btn {
   background: #fff;
   border: 1px solid #ccc;
@@ -77,6 +86,56 @@ body {
   font-size: 14px;
 }
 
+.action-btn {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 4px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+  background: #e9ecef;
+}
+
+.action-btn:active {
+  background: #dee2e6;
+}
+
+.action-btn .icon {
+  font-size: 12px;
+}
+
+/* File table checkbox styling */
+.file-table th input[type="checkbox"],
+.file-table td input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.file-table th {
+  text-align: center;
+}
+
+.file-table td input[type="checkbox"] {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Status icons in the error column */
+.error-icon {
+  color: #dc3545;
+}
+
+.success-icon {
+  color: #28a745;
+}
+
 .rule-management {
   background: #f8f9fa;
   border-bottom: 1px solid #ddd;
@@ -98,10 +157,18 @@ body {
   cursor: pointer;
   font-size: 12px;
   border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .rule-btn:hover {
   background: #e9ecef;
+}
+
+.rule-btn .icon {
+  font-size: 11px;
+  line-height: 1;
 }
 
 .rules-table-container {
@@ -272,12 +339,14 @@ body {
 }
 
 .rule-row.selected {
-  background: #e3f2fd;
-  border: 1px solid #2196f3;
+  background: #45abff;
+  color: white;
+  border: 1px solid #45abff;
 }
 
 .rule-row.selected:hover {
-  background: #e3f2fd;
+  background: #45abff;
+  color: white;
 }
 
 .rule-inputs {
@@ -292,6 +361,13 @@ body {
 .rule-type {
   width: 100%;
   min-width: 120px;
+}
+
+.rule-description {
+  color: #666;
+  font-style: italic;
+  font-size: 11px;
+  padding: 4px 8px;
 }
 
 .drop-zone {

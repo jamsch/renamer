@@ -11,28 +11,71 @@ export interface FileInfo {
 }
 
 /**
- * Represents a rule for renaming files
+ * Base rule interface with generic type parameter
  */
-export interface RenameRule {
-  /** The type of rename operation */
-  type: 'regex' | 'replace' | 'replace-case-insensitive' | 'trim' | 'prefix' | 'suffix';
-  /** Regular expression pattern (for regex type) */
-  pattern?: string;
-  /** Text to search for (for replace type) */
-  search?: string;
-  /** Replacement text */
-  replacement?: string;
-  /** Regular expression flags (for regex type) */
-  flags?: string;
-  /** Whether replace should be case insensitive (for replace-case-insensitive type) */
-  caseInsensitive?: boolean;
-  /** Position to trim from (for trim type) */
-  position?: 'start' | 'end';
-  /** Number of characters to trim (for trim type) */
-  count?: number;
-  /** Text to add (for prefix/suffix type) */
-  text?: string;
+export interface BaseRule<T extends string, P = {}> {
+  type: T;
+  data: P;
 }
+
+/**
+ * Specific rule types
+ */
+export interface ReplaceRule {
+  search: string;
+  replacement: string;
+}
+
+export interface ReplaceCaseInsensitiveRule {
+  search: string;
+  replacement: string;
+  caseInsensitive: boolean;
+}
+
+export interface RegexRule {
+  pattern: string;
+  replacement: string;
+  flags: string;
+}
+
+export interface TrimRule {
+  position: "start" | "end";
+  count: number;
+}
+
+export interface PrefixRule {
+  text: string;
+}
+
+export interface SuffixRule {
+  text: string;
+}
+
+export interface RemoveParenthesesRule {
+  // No additional properties needed
+}
+
+export interface RemoveSquareBracketsRule {
+  // No additional properties needed
+}
+
+export interface RemoveCurlyBracketsRule {
+  // No additional properties needed
+}
+
+/**
+ * Union type for all rename rules
+ */
+export type RenameRule =
+  | BaseRule<"replace", ReplaceRule>
+  | BaseRule<"replace-case-insensitive", ReplaceCaseInsensitiveRule>
+  | BaseRule<"regex", RegexRule>
+  | BaseRule<"trim", TrimRule>
+  | BaseRule<"prefix", PrefixRule>
+  | BaseRule<"suffix", SuffixRule>
+  | BaseRule<"remove-parentheses", RemoveParenthesesRule>
+  | BaseRule<"remove-square-brackets", RemoveSquareBracketsRule>
+  | BaseRule<"remove-curly-brackets", RemoveCurlyBracketsRule>;
 
 /**
  * Represents the result of a file rename operation

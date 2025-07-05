@@ -41,10 +41,22 @@
 
       <div class="rule-management">
         <div class="rule-controls">
-          <button class="rule-btn" id="addRule">Add</button>
-          <button class="rule-btn" id="removeRule">Remove</button>
-          <button class="rule-btn" id="upRule">Up</button>
-          <button class="rule-btn" id="downRule">Down</button>
+          <button class="rule-btn" id="addRule">
+            <span class="icon">➕</span>
+            Add
+          </button>
+          <button class="rule-btn" id="removeRule">
+            <span class="icon">➖</span>
+            Remove
+          </button>
+          <button class="rule-btn" id="upRule">
+            <span class="icon">⬆️</span>
+            Up
+          </button>
+          <button class="rule-btn" id="downRule">
+            <span class="icon">⬇️</span>
+            Down
+          </button>
         </div>
 
         <div class="rules-table-container">
@@ -68,13 +80,27 @@
         </div>
       </div>
 
-      <div class="tabs">
-        <div class="tab active" data-tab="files">📁 Files</div>
-        <div class="tab" data-tab="columns">📊 Columns</div>
-        <div class="tab" data-tab="options">⚙️ Options</div>
-        <div class="tab" data-tab="export">📤 Export</div>
-        <div class="tab" data-tab="filters">🔍 Filters</div>
-        <div class="tab" data-tab="analyze">📈 Analyze</div>
+      <div class="file-actions">
+        <button class="action-btn" id="selectAllFiles">
+          <span class="icon">☑️</span>
+          Select All
+        </button>
+        <button class="action-btn" id="deselectAllFiles">
+          <span class="icon">☐</span>
+          Deselect All
+        </button>
+        <button class="action-btn" id="removeSelectedFiles">
+          <span class="icon">🗑️</span>
+          Remove Selected
+        </button>
+        <button class="action-btn" id="clearAllFiles">
+          <span class="icon">🧹</span>
+          Clear All
+        </button>
+        <button class="action-btn" id="invertSelection">
+          <span class="icon">🔄</span>
+          Invert Selection
+        </button>
       </div>
 
       <div class="file-section">
@@ -88,27 +114,32 @@
         <div class="file-table-container" id="fileTableContainer">
           <div class="drop-zone-wrapper drop-zone" id="dropZoneWrapper">
             <table class="file-table" id="fileTable">
-            <thead>
-              <tr>
-                <th style="width: 80px">
-                  State
-                  <div class="resize-handle"></div>
-                </th>
-                <th style="width: 35%">
-                  Name
-                  <div class="resize-handle"></div>
-                </th>
-                <th style="width: 35%">
-                  New Name
-                  <div class="resize-handle"></div>
-                </th>
-                <th style="width: calc(30% - 80px)">Error</th>
-              </tr>
-            </thead>
-            <tbody id="fileTableBody">
-            </tbody>
+              <thead>
+                <tr>
+                  <th style="width: 80px">
+                    <input
+                      type="checkbox"
+                      id="selectAllCheckbox"
+                      title="Select/Deselect All"
+                    />
+                    <div class="resize-handle"></div>
+                  </th>
+                  <th style="width: 35%">
+                    Name
+                    <div class="resize-handle"></div>
+                  </th>
+                  <th style="width: 35%">
+                    New Name
+                    <div class="resize-handle"></div>
+                  </th>
+                  <th style="width: calc(30% - 80px)">Status</th>
+                </tr>
+              </thead>
+              <tbody id="fileTableBody"></tbody>
             </table>
-            <div class="drop-message" id="dropMessage">Drag your files here</div>
+            <div class="drop-message" id="dropMessage">
+              Drag your files here
+            </div>
           </div>
         </div>
       </div>
@@ -118,6 +149,6 @@
       </div>
     </div>
 
-    <script src="renderer.js"></script>
+    <script type="module" src="renamer.js"></script>
   </body>
 </html>
