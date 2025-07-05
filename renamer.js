@@ -969,7 +969,10 @@ class FileRenamer {
           break;
         case "trim-whitespace":
           // Trim whitespace from start and end, then replace multiple spaces with single space
-          nameWithoutExt = nameWithoutExt.trim().replace(/\s+/g, " ");
+          let trimmed = nameWithoutExt.trim();
+          // Only replace multiple consecutive whitespace with single space (don't touch single spaces)
+          trimmed = trimmed.replace(/\s{2,}/g, " ");
+          nameWithoutExt = trimmed;
           break;
         case "prefix":
           if (rule.data.text) {
@@ -1336,10 +1339,12 @@ class FileRenamer {
    */
   createNameCell(fileSignal) {
     const nameCell = h("td", { className: "original-name" });
+    const preElement = h("pre", { className: "filename" });
+    nameCell.appendChild(preElement);
 
     createEffect(() => {
       const [getName] = fileSignal.nameSignal;
-      nameCell.textContent = getName();
+      preElement.textContent = getName();
     });
 
     return nameCell;
@@ -1380,6 +1385,8 @@ class FileRenamer {
    */
   createPreviewCell(fileSignal) {
     const previewCell = h("td", { className: "new-name" });
+    const preElement = h("pre", { className: "filename" });
+    previewCell.appendChild(preElement);
 
     createEffect(() => {
       const [getName] = fileSignal.nameSignal;
@@ -1387,7 +1394,7 @@ class FileRenamer {
       const originalName = getName();
       const rules = this.getRulesFromSignals();
       const previewName = this.applyRulesLocally(originalName, rules);
-      previewCell.textContent = previewName;
+      preElement.textContent = previewName;
       previewCell.className =
         "new-name" + (previewName === originalName ? " unchanged" : "");
     });
