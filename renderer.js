@@ -102,10 +102,24 @@ class FileRenamer {
       emptyRule.addEventListener("click", this.addRuleToTable.bind(this));
     }
 
-    // Keyboard event listener for delete key
+    // Keyboard event listener for delete key and select all
     document.addEventListener("keydown", (e) => {
       if (e.key === "Delete" || e.key === "Backspace") {
         this.removeSelectedFiles();
+      } else if (e.key === "a" && (e.ctrlKey || e.metaKey)) {
+        // Check if we're not in an input field or textarea
+        const activeElement = document.activeElement;
+        const isInInput = activeElement && (
+          activeElement.tagName === "INPUT" || 
+          activeElement.tagName === "TEXTAREA" || 
+          (/** @type {HTMLElement} */ (activeElement)).isContentEditable === true
+        );
+        
+        // If we're not in an input field and have files to select
+        if (!isInInput && this.files.length > 0) {
+          e.preventDefault(); // Prevent default select all behavior
+          this.selectAllFiles();
+        }
       }
     });
   }
@@ -328,6 +342,16 @@ class FileRenamer {
     });
 
     this.updateFileTable();
+  }
+
+  /**
+   * Select all files in the table
+   */
+  selectAllFiles() {
+    const allRows = document.querySelectorAll(".file-table tbody tr");
+    allRows.forEach(row => {
+      row.classList.add("selected");
+    });
   }
 
   /**
