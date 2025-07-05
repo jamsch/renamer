@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ReNamer Lite (non-commercial use only)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <div class="menu-bar">
+        <span class="menu-item">File</span>
+        <span class="menu-item">Settings</span>
+        <span class="menu-item">Presets</span>
+        <span class="menu-item">Language</span>
+        <span class="menu-item">Help</span>
+      </div>
+
+      <div class="toolbar">
+        <button class="toolbar-btn" id="addFiles">
+          <span class="icon">📁</span>
+          Add Files
+        </button>
+        <button class="toolbar-btn" id="addFolders">
+          <span class="icon">📂</span>
+          Add Folders
+        </button>
+        <button class="toolbar-btn" id="preview">
+          <span class="icon">🔍</span>
+          Preview
+        </button>
+        <button class="toolbar-btn rename-btn" id="renameBtn">
+          <span class="icon">✓</span>
+          Rename
+        </button>
+      </div>
+
+      <div class="rule-management">
+        <div class="rule-controls">
+          <button class="rule-btn" id="addRule">Add</button>
+          <button class="rule-btn" id="removeRule">Remove</button>
+          <button class="rule-btn" id="upRule">Up</button>
+          <button class="rule-btn" id="downRule">Down</button>
+        </div>
+
+        <div class="rules-table-container">
+          <table class="rules-table" id="rulesTable">
+            <thead>
+              <tr>
+                <th width="30">#</th>
+                <th width="100">Rule</th>
+                <th>Statement</th>
+              </tr>
+            </thead>
+            <tbody id="rulesTableBody">
+              <tr class="empty-rule">
+                <td colspan="3" class="empty-message">
+                  Click here to add a rule
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-tab="files">📁 Files</div>
+        <div class="tab" data-tab="columns">📊 Columns</div>
+        <div class="tab" data-tab="options">⚙️ Options</div>
+        <div class="tab" data-tab="export">📤 Export</div>
+        <div class="tab" data-tab="filters">🔍 Filters</div>
+        <div class="tab" data-tab="analyze">📈 Analyze</div>
+      </div>
+
+      <div class="file-section">
+        <input
+          type="file"
+          id="fileInput"
+          multiple
+          accept="*/*"
+          style="display: none"
+        />
+        <div class="file-table-container" id="fileTableContainer">
+          <table class="file-table drop-zone" id="fileTable">
+            <thead>
+              <tr>
+                <th width="60">State</th>
+                <th>Name</th>
+                <th>New Name</th>
+                <th width="60">Error</th>
+              </tr>
+            </thead>
+            <tbody id="fileTableBody">
+              <tr class="drop-zone-message">
+                <td colspan="4" class="drop-message">Drag your files here</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <span id="fileCount">0 files</span>
+      </div>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
