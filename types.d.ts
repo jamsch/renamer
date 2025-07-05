@@ -63,6 +63,10 @@ export interface RemoveCurlyBracketsRule {
   // No additional properties needed
 }
 
+export interface TrimWhitespaceRule {
+  // No additional properties needed
+}
+
 /**
  * Union type for all rename rules
  */
@@ -75,7 +79,8 @@ export type RenameRule =
   | BaseRule<"suffix", SuffixRule>
   | BaseRule<"remove-parentheses", RemoveParenthesesRule>
   | BaseRule<"remove-square-brackets", RemoveSquareBracketsRule>
-  | BaseRule<"remove-curly-brackets", RemoveCurlyBracketsRule>;
+  | BaseRule<"remove-curly-brackets", RemoveCurlyBracketsRule>
+  | BaseRule<"trim-whitespace", TrimWhitespaceRule>;
 
 /**
  * Represents the result of a file rename operation

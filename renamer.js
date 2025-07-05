@@ -33,6 +33,7 @@ const RULE_TYPES = /** @type {const} */ ([
   "replace-case-insensitive",
   "regex",
   "trim",
+  "trim-whitespace",
   "prefix",
   "suffix",
   "remove-parentheses",
@@ -48,6 +49,7 @@ const RULE_LABELS = {
   "replace-case-insensitive": "Replace Text (Case Insensitive)",
   regex: "Regex Replace",
   trim: "Trim Characters",
+  "trim-whitespace": "Trim Whitespace",
   prefix: "Add Prefix",
   suffix: "Add Suffix",
   "remove-parentheses": "Remove Parentheses (...)",
@@ -381,7 +383,7 @@ class FileRenamer {
         dropZoneWrapper.classList.add("has-files");
       }
 
-      // Clear the entire table body
+      // Clear the entire table body and rebuild all rows
       fileTableBody.innerHTML = "";
 
       // Rebuild all rows
@@ -399,7 +401,6 @@ class FileRenamer {
         });
 
         row.append(checkboxCell, nameCell, previewCell, errorCell);
-
         fileTableBody.appendChild(row);
 
         // Reactive updates for this row
@@ -877,6 +878,7 @@ class FileRenamer {
           }
           break;
         }
+        case "trim-whitespace":
         case "remove-parentheses":
         case "remove-square-brackets":
         case "remove-curly-brackets": {
@@ -952,6 +954,10 @@ class FileRenamer {
               nameWithoutExt.length - rule.data.count
             );
           }
+          break;
+        case "trim-whitespace":
+          // Trim whitespace from start and end, then replace multiple spaces with single space
+          nameWithoutExt = nameWithoutExt.trim().replace(/\s+/g, " ");
           break;
         case "prefix":
           if (rule.data.text) {
@@ -1036,6 +1042,9 @@ class FileRenamer {
     // Clear existing files when new files are added
     const [, setFiles] = this.fileSignals;
     const newFiles = [];
+    
+    // Clear rename results when adding new files
+    this.renameResults.clear();
 
     for (const file of files) {
       let filePath = "";
