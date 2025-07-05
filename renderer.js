@@ -383,12 +383,11 @@ class FileRenamer {
       <td>
         <select class="rule-type">
           <option value="replace">Replace Text</option>
+          <option value="replace-case-insensitive">Replace Text (Case Insensitive)</option>
           <option value="regex">Regex Replace</option>
           <option value="trim">Trim Characters</option>
           <option value="prefix">Add Prefix</option>
           <option value="suffix">Add Suffix</option>
-          <option value="insert-prefix">Insert Prefix</option>
-          <option value="insert-suffix">Insert Suffix</option>
         </select>
       </td>
       <td class="rule-statement">
@@ -455,6 +454,7 @@ class FileRenamer {
 
     switch (ruleType) {
       case "replace":
+      case "replace-case-insensitive":
         inputsContainer.innerHTML = `
           <input type="text" class="rule-input" placeholder="Search text" value="${
             existingValues[0] || ""
@@ -499,20 +499,6 @@ class FileRenamer {
       case "suffix":
         inputsContainer.innerHTML = `
           <input type="text" class="rule-input" placeholder="Suffix text" value="${
-            existingValues[0] || ""
-          }">
-        `;
-        break;
-      case "insert-prefix":
-        inputsContainer.innerHTML = `
-          <input type="text" class="rule-input" placeholder="Insert text" value="${
-            existingValues[0] || ""
-          }">
-        `;
-        break;
-      case "insert-suffix":
-        inputsContainer.innerHTML = `
-          <input type="text" class="rule-input" placeholder="Insert text" value="${
             existingValues[0] || ""
           }">
         `;
@@ -576,6 +562,11 @@ class FileRenamer {
           rule.search = inputs[0].value;
           rule.replacement = inputs[1].value;
           break;
+        case "replace-case-insensitive":
+          rule.search = inputs[0].value;
+          rule.replacement = inputs[1].value;
+          rule.caseInsensitive = true;
+          break;
         case "regex":
           rule.pattern = inputs[0].value;
           rule.replacement = inputs[1].value;
@@ -589,12 +580,6 @@ class FileRenamer {
           rule.text = inputs[0].value;
           break;
         case "suffix":
-          rule.text = inputs[0].value;
-          break;
-        case "insert-prefix":
-          rule.text = inputs[0].value;
-          break;
-        case "insert-suffix":
           rule.text = inputs[0].value;
           break;
       }
@@ -615,6 +600,7 @@ class FileRenamer {
   isValidRule(rule) {
     switch (rule.type) {
       case "replace":
+      case "replace-case-insensitive":
         return !!(rule.search && rule.replacement !== undefined);
       case "regex":
         return !!rule.pattern;
@@ -622,8 +608,6 @@ class FileRenamer {
         return !!(rule.position && rule.count && rule.count > 0);
       case "prefix":
       case "suffix":
-      case "insert-prefix":
-      case "insert-suffix":
         return !!rule.text;
       default:
         return false;
@@ -662,6 +646,13 @@ class FileRenamer {
             nameWithoutExt = nameWithoutExt.split(rule.search).join(rule.replacement);
           }
           break;
+        case "replace-case-insensitive":
+          if (rule.search && rule.replacement !== undefined) {
+            // Create a regex with case-insensitive flag for global replacement
+            const regex = new RegExp(rule.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            nameWithoutExt = nameWithoutExt.replace(regex, rule.replacement);
+          }
+          break;
         case "trim":
           if (rule.position === "start" && rule.count) {
             nameWithoutExt = nameWithoutExt.substring(rule.count);
@@ -675,16 +666,6 @@ class FileRenamer {
           }
           break;
         case "suffix":
-          if (rule.text) {
-            nameWithoutExt = nameWithoutExt + rule.text;
-          }
-          break;
-        case "insert-prefix":
-          if (rule.text) {
-            nameWithoutExt = rule.text + nameWithoutExt;
-          }
-          break;
-        case "insert-suffix":
           if (rule.text) {
             nameWithoutExt = nameWithoutExt + rule.text;
           }

@@ -15,7 +15,7 @@ export interface FileInfo {
  */
 export interface RenameRule {
   /** The type of rename operation */
-  type: 'regex' | 'replace' | 'trim' | 'prefix' | 'suffix' | 'insert-prefix' | 'insert-suffix';
+  type: 'regex' | 'replace' | 'replace-case-insensitive' | 'trim' | 'prefix' | 'suffix';
   /** Regular expression pattern (for regex type) */
   pattern?: string;
   /** Text to search for (for replace type) */
@@ -24,6 +24,8 @@ export interface RenameRule {
   replacement?: string;
   /** Regular expression flags (for regex type) */
   flags?: string;
+  /** Whether replace should be case insensitive (for replace-case-insensitive type) */
+  caseInsensitive?: boolean;
   /** Position to trim from (for trim type) */
   position?: 'start' | 'end';
   /** Number of characters to trim (for trim type) */
