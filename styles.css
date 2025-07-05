@@ -246,6 +246,7 @@ body {
   height: 32px;
   max-height: 32px;
   min-height: 32px;
+  user-select: none;
 }
 
 .file-table tbody tr:hover {
@@ -259,6 +260,11 @@ body {
 
 .file-table tbody tr.selected:hover {
   background: #bbdefb;
+}
+
+/* Allow text selection only in original name column */
+.file-table .original-name {
+  user-select: text;
 }
 
 .rule-row:hover {

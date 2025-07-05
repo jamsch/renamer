@@ -279,15 +279,19 @@ class FileRenamer {
         const currentIndex = allRows.indexOf(row);
         
         if (e.shiftKey) {
-          // Shift selection - select range from last selected to current
+          // Shift selection - select range from first selected to current
           const selectedRows = document.querySelectorAll(".file-table tbody tr.selected");
           if (selectedRows.length > 0) {
-            const lastSelected = selectedRows[selectedRows.length - 1];
-            const lastIndex = allRows.indexOf(lastSelected);
-            const start = Math.min(currentIndex, lastIndex);
-            const end = Math.max(currentIndex, lastIndex);
+            // Use the first selected item as the anchor point
+            const firstSelected = selectedRows[0];
+            const firstIndex = allRows.indexOf(firstSelected);
+            const start = Math.min(currentIndex, firstIndex);
+            const end = Math.max(currentIndex, firstIndex);
             
-            // Select all rows in the range
+            // Clear all existing selections
+            allRows.forEach((r) => r.classList.remove("selected"));
+            
+            // Select all rows in the new range
             for (let i = start; i <= end; i++) {
               allRows[i].classList.add("selected");
             }
