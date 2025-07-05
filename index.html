@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ReNamer Lite (non-commercial use only)</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+    />
+    <title>jamsch renamer</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -81,21 +85,30 @@
           style="display: none"
         />
         <div class="file-table-container" id="fileTableContainer">
-          <table class="file-table drop-zone" id="fileTable">
+          <div class="drop-zone-wrapper drop-zone" id="dropZoneWrapper">
+            <table class="file-table" id="fileTable">
             <thead>
               <tr>
-                <th width="60">State</th>
-                <th>Name</th>
-                <th>New Name</th>
-                <th width="60">Error</th>
+                <th style="width: 80px">
+                  State
+                  <div class="resize-handle"></div>
+                </th>
+                <th style="width: 35%">
+                  Name
+                  <div class="resize-handle"></div>
+                </th>
+                <th style="width: 35%">
+                  New Name
+                  <div class="resize-handle"></div>
+                </th>
+                <th style="width: calc(30% - 80px)">Error</th>
               </tr>
             </thead>
             <tbody id="fileTableBody">
-              <tr class="drop-zone-message">
-                <td colspan="4" class="drop-message">Drag your files here</td>
-              </tr>
             </tbody>
-          </table>
+            </table>
+            <div class="drop-message" id="dropMessage">Drag your files here</div>
+          </div>
         </div>
       </div>
 
