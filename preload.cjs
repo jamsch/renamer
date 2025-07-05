@@ -32,5 +32,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
    */
   selectFiles: () => {
     return ipcRenderer.invoke('select-files');
+  },
+  
+  /**
+   * Check if a path is a directory
+   * @param {string} filePath - Path to check
+   * @returns {Promise<boolean>} Promise resolving to true if directory
+   */
+  isDirectory: (filePath) => {
+    return ipcRenderer.invoke('is-directory', filePath);
+  },
+  
+  /**
+   * Read contents of a folder
+   * @param {string} folderPath - Path to the folder to read
+   * @returns {Promise<FileInfo[]>} Promise resolving to files in the folder
+   */
+  readFolderContents: (folderPath) => {
+    return ipcRenderer.invoke('read-folder-contents', folderPath);
   }
 });

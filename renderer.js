@@ -136,7 +136,7 @@ class FileRenamer {
    * Handle file drop event
    * @param {DragEvent} e
    */
-  handleDrop(e) {
+  async handleDrop(e) {
     e.preventDefault();
     e.stopPropagation();
     const target = /** @type {HTMLElement} */ (e.target);
@@ -144,7 +144,7 @@ class FileRenamer {
 
     if (e.dataTransfer?.files) {
       const files = Array.from(e.dataTransfer.files);
-      this.addFiles(files);
+      await this.addFiles(files);
     }
   }
 
@@ -152,11 +152,11 @@ class FileRenamer {
    * Handle file input change
    * @param {Event} e
    */
-  handleFileSelect(e) {
+  async handleFileSelect(e) {
     const target = /** @type {HTMLInputElement} */ (e.target);
     if (target.files) {
       const files = Array.from(target.files);
-      this.addFiles(files);
+      await this.addFiles(files);
     }
   }
 
@@ -164,11 +164,11 @@ class FileRenamer {
    * Add files to the list
    * @param {File[]} files
    */
-  addFiles(files) {
+  async addFiles(files) {
     // Clear existing files when new files are added
     this.files = [];
 
-    files.forEach((file) => {
+    for (const file of files) {
       let filePath = "";
 
       try {
@@ -178,12 +178,39 @@ class FileRenamer {
         console.warn("Could not get file path:", error);
       }
 
-      this.files.push({
-        name: file.name,
-        path: filePath,
-        size: file.size,
-      });
-    });
+      // Check if this is a directory (folder) using the main process
+      try {
+        const isDirectory = await window.electronAPI.isDirectory(filePath);
+        
+        if (isDirectory) {
+          // This is a folder, get its contents
+          const folderFiles = await window.electronAPI.readFolderContents(filePath);
+          console.log(`Found folder: ${file.name}, contents:`, folderFiles);
+          folderFiles.forEach((folderFile) => {
+            this.files.push({
+              name: folderFile.name,
+              path: folderFile.path,
+              size: folderFile.size,
+            });
+          });
+        } else {
+          // Regular file
+          this.files.push({
+            name: file.name,
+            path: filePath,
+            size: file.size,
+          });
+        }
+      } catch (error) {
+        console.warn("Could not check if directory:", error);
+        // If we can't determine, treat it as a regular file
+        this.files.push({
+          name: file.name,
+          path: filePath,
+          size: file.size,
+        });
+      }
+    }
 
     this.updateFileTable();
   }
