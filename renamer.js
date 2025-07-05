@@ -359,6 +359,10 @@ class FileRenamer {
       document.getElementById("fileTableBody")
     );
 
+    // Track file array reference to detect actual changes vs selection changes
+    /** @type {FileSignalObject[] | null} */
+    let currentFilesRef = null;
+
     createEffect(() => {
       const [getFiles] = this.fileSignals;
       /** @type {FileSignalObject[]} */
@@ -378,10 +382,18 @@ class FileRenamer {
       if (files.length === 0) {
         dropZoneWrapper.classList.remove("has-files");
         fileTableBody.innerHTML = "";
+        currentFilesRef = files;
         return;
       } else {
         dropZoneWrapper.classList.add("has-files");
       }
+
+      // Only rebuild if the files array reference has changed (new files added/removed)
+      // This prevents rebuilding on selection changes
+      if (currentFilesRef === files) {
+        return;
+      }
+      currentFilesRef = files;
 
       // Clear the entire table body and rebuild all rows
       fileTableBody.innerHTML = "";
@@ -1042,7 +1054,7 @@ class FileRenamer {
     // Clear existing files when new files are added
     const [, setFiles] = this.fileSignals;
     const newFiles = [];
-    
+
     // Clear rename results when adding new files
     this.renameResults.clear();
 
