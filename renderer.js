@@ -66,7 +66,12 @@ class FileRenamer {
     const tableBody = /** @type {HTMLElement} */ (
       document.getElementById("fileTableBody")
     );
-    tableBody.addEventListener("click", () => fileInput.click());
+    tableBody.addEventListener("click", () => {
+      // Only allow clicking to add files when no files are loaded
+      if (this.files.length === 0) {
+        fileInput.click();
+      }
+    });
     dropZone.addEventListener("dragover", this.handleDragOver.bind(this));
     dropZone.addEventListener("drop", this.handleDrop.bind(this));
     dropZone.addEventListener("dragleave", this.handleDragLeave.bind(this));
@@ -96,6 +101,13 @@ class FileRenamer {
     if (emptyRule) {
       emptyRule.addEventListener("click", this.addRuleToTable.bind(this));
     }
+
+    // Keyboard event listener for delete key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Delete" || e.key === "Backspace") {
+        this.removeSelectedFiles();
+      }
+    });
   }
 
   /**
@@ -220,12 +232,36 @@ class FileRenamer {
         <td class="error-message">${errorMessage}</td>
       `;
 
-      // Add click handler to select row
-      row.addEventListener("click", () => {
-        document
-          .querySelectorAll(".file-table tbody tr")
-          .forEach((r) => r.classList.remove("selected"));
-        row.classList.add("selected");
+      // Add click handler to select row with multi-selection support
+      row.addEventListener("click", (e) => {
+        const allRows = Array.from(document.querySelectorAll(".file-table tbody tr"));
+        const currentIndex = allRows.indexOf(row);
+        
+        if (e.shiftKey) {
+          // Shift selection - select range from last selected to current
+          const selectedRows = document.querySelectorAll(".file-table tbody tr.selected");
+          if (selectedRows.length > 0) {
+            const lastSelected = selectedRows[selectedRows.length - 1];
+            const lastIndex = allRows.indexOf(lastSelected);
+            const start = Math.min(currentIndex, lastIndex);
+            const end = Math.max(currentIndex, lastIndex);
+            
+            // Select all rows in the range
+            for (let i = start; i <= end; i++) {
+              allRows[i].classList.add("selected");
+            }
+          } else {
+            // No previous selection, just select current
+            row.classList.add("selected");
+          }
+        } else if (e.ctrlKey || e.metaKey) {
+          // Multi-selection with Ctrl/Cmd key
+          row.classList.toggle("selected");
+        } else {
+          // Single selection - clear all others and select this one
+          allRows.forEach((r) => r.classList.remove("selected"));
+          row.classList.add("selected");
+        }
       });
 
       tableBody.appendChild(row);
@@ -238,6 +274,32 @@ class FileRenamer {
    */
   removeFile(index) {
     this.files.splice(index, 1);
+    this.updateFileTable();
+  }
+
+  /**
+   * Remove selected files from the list
+   */
+  removeSelectedFiles() {
+    const selectedRows = document.querySelectorAll(".file-table tbody tr.selected");
+    if (selectedRows.length === 0) {
+      return;
+    }
+
+    // Get the file names of selected rows
+    const selectedFileNames = Array.from(selectedRows).map(row => {
+      const nameCell = row.querySelector(".original-name");
+      return nameCell ? nameCell.textContent : null;
+    }).filter(name => name !== null);
+
+    // Remove files from the array
+    this.files = this.files.filter(file => !selectedFileNames.includes(file.name));
+    
+    // Clear any stored rename results for removed files
+    selectedFileNames.forEach(name => {
+      this.renameResults.delete(name);
+    });
+
     this.updateFileTable();
   }
 
@@ -260,6 +322,9 @@ class FileRenamer {
     row.className = "rule-row";
     row.innerHTML = `
       <td>${ruleIndex}</td>
+      <td>
+        <input type="checkbox" class="rule-enabled" checked>
+      </td>
       <td>
         <select class="rule-type">
           <option value="replace">Replace Text</option>
@@ -431,6 +496,15 @@ class FileRenamer {
     const rules = [];
 
     ruleRows.forEach((row) => {
+      const enabledCheckbox = /** @type {HTMLInputElement} */ (
+        row.querySelector(".rule-enabled")
+      );
+      
+      // Skip disabled rules
+      if (!enabledCheckbox.checked) {
+        return;
+      }
+      
       const typeSelect = /** @type {HTMLSelectElement} */ (
         row.querySelector(".rule-type")
       );

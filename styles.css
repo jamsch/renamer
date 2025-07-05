@@ -257,6 +257,10 @@ body {
   border: 1px solid #2196f3;
 }
 
+.file-table tbody tr.selected:hover {
+  background: #bbdefb;
+}
+
 .rule-row:hover {
   background: #f1f3f4;
 }
