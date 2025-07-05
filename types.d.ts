@@ -67,6 +67,30 @@ export interface TrimWhitespaceRule {
   // No additional properties needed
 }
 
+export interface UppercaseRule {
+  // No additional properties needed
+}
+
+export interface LowercaseRule {
+  // No additional properties needed
+}
+
+export interface CapitalizeRule {
+  // No additional properties needed
+}
+
+export interface CamelcaseRule {
+  // No additional properties needed
+}
+
+export interface KebabCaseRule {
+  // No additional properties needed
+}
+
+export interface SnakeCaseRule {
+  // No additional properties needed
+}
+
 /**
  * Union type for all rename rules
  */
@@ -80,7 +104,13 @@ export type RenameRule =
   | BaseRule<"remove-parentheses", RemoveParenthesesRule>
   | BaseRule<"remove-square-brackets", RemoveSquareBracketsRule>
   | BaseRule<"remove-curly-brackets", RemoveCurlyBracketsRule>
-  | BaseRule<"trim-whitespace", TrimWhitespaceRule>;
+  | BaseRule<"trim-whitespace", TrimWhitespaceRule>
+  | BaseRule<"uppercase", UppercaseRule>
+  | BaseRule<"lowercase", LowercaseRule>
+  | BaseRule<"capitalize", CapitalizeRule>
+  | BaseRule<"camelcase", CamelcaseRule>
+  | BaseRule<"kebab-case", KebabCaseRule>
+  | BaseRule<"snake-case", SnakeCaseRule>;
 
 /**
  * Represents the result of a file rename operation

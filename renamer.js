@@ -39,6 +39,12 @@ const RULE_TYPES = /** @type {const} */ ([
   "remove-parentheses",
   "remove-square-brackets",
   "remove-curly-brackets",
+  "uppercase",
+  "lowercase",
+  "capitalize",
+  "camelcase",
+  "kebab-case",
+  "snake-case",
 ]);
 
 /**
@@ -55,6 +61,12 @@ const RULE_LABELS = {
   "remove-parentheses": "Remove Parentheses (...)",
   "remove-square-brackets": "Remove Square Brackets [...]",
   "remove-curly-brackets": "Remove Curly Brackets {...}",
+  uppercase: "UPPERCASE",
+  lowercase: "lowercase",
+  capitalize: "Capitalize Words",
+  camelcase: "camelCase",
+  "kebab-case": "kebab-case",
+  "snake-case": "snake_case",
 };
 
 // --- Signal Type Definitions ---
@@ -738,6 +750,69 @@ class FileRenamer {
           container.appendChild(description);
           break;
         }
+        case "trim-whitespace": {
+          const description = h(
+            "span",
+            { className: "rule-description" },
+            "Trims whitespace and normalizes spaces"
+          );
+          container.appendChild(description);
+          break;
+        }
+        case "uppercase": {
+          const description = h(
+            "span",
+            { className: "rule-description" },
+            "Converts text to UPPERCASE"
+          );
+          container.appendChild(description);
+          break;
+        }
+        case "lowercase": {
+          const description = h(
+            "span",
+            { className: "rule-description" },
+            "Converts text to lowercase"
+          );
+          container.appendChild(description);
+          break;
+        }
+        case "capitalize": {
+          const description = h(
+            "span",
+            { className: "rule-description" },
+            "Capitalizes First Letter Of Each Word"
+          );
+          container.appendChild(description);
+          break;
+        }
+        case "camelcase": {
+          const description = h(
+            "span",
+            { className: "rule-description" },
+            "Converts text to camelCase"
+          );
+          container.appendChild(description);
+          break;
+        }
+        case "kebab-case": {
+          const description = h(
+            "span",
+            { className: "rule-description" },
+            "Converts text to kebab-case"
+          );
+          container.appendChild(description);
+          break;
+        }
+        case "snake-case": {
+          const description = h(
+            "span",
+            { className: "rule-description" },
+            "Converts text to snake_case"
+          );
+          container.appendChild(description);
+          break;
+        }
       }
     });
 
@@ -893,7 +968,13 @@ class FileRenamer {
         case "trim-whitespace":
         case "remove-parentheses":
         case "remove-square-brackets":
-        case "remove-curly-brackets": {
+        case "remove-curly-brackets":
+        case "uppercase":
+        case "lowercase":
+        case "capitalize":
+        case "camelcase":
+        case "kebab-case":
+        case "snake-case": {
           // These rules don't need any parameters
           validRules.push({ type, data: {} });
           break;
@@ -992,6 +1073,45 @@ class FileRenamer {
           break;
         case "remove-curly-brackets":
           nameWithoutExt = nameWithoutExt.replace(/\{[^}]*\}/g, "");
+          break;
+        case "uppercase":
+          nameWithoutExt = nameWithoutExt.toUpperCase();
+          break;
+        case "lowercase":
+          nameWithoutExt = nameWithoutExt.toLowerCase();
+          break;
+        case "capitalize":
+          // Capitalize first letter of each word
+          nameWithoutExt = nameWithoutExt.replace(/\b\w/g, char => char.toUpperCase());
+          break;
+        case "camelcase":
+          // Remove spaces and capitalize words except the first
+          nameWithoutExt = nameWithoutExt
+            .split(/[\s\-_]+/)
+            .map((word, index) => 
+              index === 0 
+                ? word.toLowerCase() 
+                : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            )
+            .join('');
+          break;
+        case "kebab-case":
+          // Convert to kebab-case: lowercase with hyphens
+          nameWithoutExt = nameWithoutExt
+            .toLowerCase()
+            .replace(/[\s_]+/g, '-')
+            .replace(/[^a-z0-9\-]/g, '')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+          break;
+        case "snake-case":
+          // Convert to snake_case: lowercase with underscores
+          nameWithoutExt = nameWithoutExt
+            .toLowerCase()
+            .replace(/[\s\-]+/g, '_')
+            .replace(/[^a-z0-9_]/g, '')
+            .replace(/_+/g, '_')
+            .replace(/^_|_$/g, '');
           break;
       }
     }
