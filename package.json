@@ -6,6 +6,9 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "dist": "electron-builder --publish=never",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -15,6 +18,38 @@
   "devDependencies": {
     "@types/node": "^24.0.10",
     "electron": "^37.2.0",
+    "electron-builder": "^24.13.3",
     "typescript": "^5.8.3"
+  },
+  "build": {
+    "appId": "com.jamsch.renamer",
+    "productName": "File Renamer",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.cjs",
+      "renamer.js",
+      "signals.js",
+      "types.d.ts",
+      "index.html",
+      "styles.css",
+      "components/**/*",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    }
   }
 }
