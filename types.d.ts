@@ -91,6 +91,10 @@ export interface SnakeCaseRule {
   // No additional properties needed
 }
 
+export interface RandomCharactersRule {
+  length: number;
+}
+
 /**
  * Union type for all rename rules
  */
@@ -110,7 +114,8 @@ export type RenameRule =
   | BaseRule<"capitalize", CapitalizeRule>
   | BaseRule<"camelcase", CamelcaseRule>
   | BaseRule<"kebab-case", KebabCaseRule>
-  | BaseRule<"snake-case", SnakeCaseRule>;
+  | BaseRule<"snake-case", SnakeCaseRule>
+  | BaseRule<"random-characters", RandomCharactersRule>;
 
 /**
  * Represents the result of a file rename operation

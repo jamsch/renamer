@@ -45,6 +45,7 @@ const RULE_TYPES = /** @type {const} */ ([
   "camelcase",
   "kebab-case",
   "snake-case",
+  "random-characters",
 ]);
 
 /**
@@ -67,6 +68,7 @@ const RULE_LABELS = {
   camelcase: "camelCase",
   "kebab-case": "kebab-case",
   "snake-case": "snake_case",
+  "random-characters": "Insert Random Characters",
 };
 
 // --- Signal Type Definitions ---
@@ -83,6 +85,7 @@ const RULE_LABELS = {
  * @property {[() => "start" | "end", (v: "start" | "end") => void]} positionSignal
  * @property {[() => number, (v: number) => void]} countSignal
  * @property {[() => string, (v: string) => void]} textSignal
+ * @property {[() => number, (v: number) => void]} lengthSignal
  */
 
 /**
@@ -94,7 +97,9 @@ const RULE_LABELS = {
  */
 
 class FileRenamer {
-  renameResults = createSignal(/** @type {Map<string, import('./types.d.ts').RenameResult>} */ (new Map()));
+  renameResults = createSignal(
+    /** @type {Map<string, import('./types.d.ts').RenameResult>} */ (new Map())
+  );
   ruleSignals = createSignal(/** @type {RuleSignalObject[]} */ ([]));
   selectedRuleIndex = createSignal(/** @type {number | null} */ (null));
   fileSignals = createSignal(/** @type {FileSignalObject[]} */ ([]));
@@ -143,6 +148,7 @@ class FileRenamer {
       positionSignal: createSignal(/** @type {"start" | "end"} */ ("start")),
       countSignal: createSignal(1),
       textSignal: createSignal(""),
+      lengthSignal: createSignal(16),
     };
   }
 
@@ -701,6 +707,29 @@ class FileRenamer {
   }
 
   /**
+   * Creates random characters length input component
+   * @param {RuleSignalObject} ruleSignals
+   * @returns {DocumentFragment}
+   */
+  createRandomCharactersInputs(ruleSignals) {
+    const length = h("input", {
+      type: "number",
+      className: "rule-input",
+      placeholder: "Length",
+      min: "1",
+      max: "100",
+      oninput: () => ruleSignals.lengthSignal[1](parseInt(length.value) || 16),
+    });
+    createEffect(() => {
+      length.value = String(ruleSignals.lengthSignal[0]());
+    });
+
+    const fragment = document.createDocumentFragment();
+    fragment.append(length);
+    return fragment;
+  }
+
+  /**
    * Render rule inputs based on type
    * @param {RuleSignalObject} ruleSignals
    * @returns {HTMLDivElement}
@@ -811,6 +840,10 @@ class FileRenamer {
             "Converts text to snake_case"
           );
           container.appendChild(description);
+          break;
+        }
+        case "random-characters": {
+          container.appendChild(this.createRandomCharactersInputs(ruleSignals));
           break;
         }
       }
@@ -965,6 +998,18 @@ class FileRenamer {
           }
           break;
         }
+        case "random-characters": {
+          const rule = {
+            type,
+            data: {
+              length: ruleSignal.lengthSignal[0](),
+            },
+          };
+          if (rule.data.length > 0) {
+            validRules.push(rule);
+          }
+          break;
+        }
         case "trim-whitespace":
         case "remove-parentheses":
         case "remove-square-brackets":
@@ -1065,6 +1110,26 @@ class FileRenamer {
             nameWithoutExt = nameWithoutExt + rule.data.text;
           }
           break;
+        case "random-characters": {
+          let characters = "";
+          const length = rule.data.length || 16;
+          for (let i = 0; i < length; i++) {
+            characters += String.fromCharCode(
+              80 + Math.ceil(Math.random() * 52)
+            );
+          }
+          nameWithoutExt =
+            nameWithoutExt +
+            "_" +
+            characters
+              .replace(/\([^)]*\)/g, "")
+              .replace(/\[[^\]]*\]/g, "")
+              .replace(/\{[^}]*\}/g, "")
+              .replace(/[\s_]+/g, "-")
+              .replace(/[^a-zA-Z0-9\-]/g, "")
+              .replace(/-+/g, "")
+              .replace(/^-|-$/g, "");
+        }
         case "remove-parentheses":
           nameWithoutExt = nameWithoutExt.replace(/\([^)]*\)/g, "");
           break;
@@ -1082,36 +1147,38 @@ class FileRenamer {
           break;
         case "capitalize":
           // Capitalize first letter of each word
-          nameWithoutExt = nameWithoutExt.replace(/\b\w/g, char => char.toUpperCase());
+          nameWithoutExt = nameWithoutExt.replace(/\b\w/g, (char) =>
+            char.toUpperCase()
+          );
           break;
         case "camelcase":
           // Remove spaces and capitalize words except the first
           nameWithoutExt = nameWithoutExt
             .split(/[\s\-_]+/)
-            .map((word, index) => 
-              index === 0 
-                ? word.toLowerCase() 
+            .map((word, index) =>
+              index === 0
+                ? word.toLowerCase()
                 : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
             )
-            .join('');
+            .join("");
           break;
         case "kebab-case":
           // Convert to kebab-case: lowercase with hyphens
           nameWithoutExt = nameWithoutExt
             .toLowerCase()
-            .replace(/[\s_]+/g, '-')
-            .replace(/[^a-z0-9\-]/g, '')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '');
+            .replace(/[\s_]+/g, "-")
+            .replace(/[^a-z0-9\-]/g, "")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, "");
           break;
         case "snake-case":
           // Convert to snake_case: lowercase with underscores
           nameWithoutExt = nameWithoutExt
             .toLowerCase()
-            .replace(/[\s\-]+/g, '_')
-            .replace(/[^a-z0-9_]/g, '')
-            .replace(/_+/g, '_')
-            .replace(/^_|_$/g, '');
+            .replace(/[\s\-]+/g, "_")
+            .replace(/[^a-z0-9_]/g, "")
+            .replace(/_+/g, "_")
+            .replace(/^_|_$/g, "");
           break;
       }
     }
@@ -1329,10 +1396,15 @@ class FileRenamer {
       });
 
       // Filter to only operations where the name actually changes
-      const renameOperations = allOperations.filter(op => op.originalName !== op.newName);
-      
+      const renameOperations = allOperations.filter(
+        (op) => op.originalName !== op.newName
+      );
+
       if (renameOperations.length === 0) {
-        this.showToast("No files need renaming - all names are unchanged", "warning");
+        this.showToast(
+          "No files need renaming - all names are unchanged",
+          "warning"
+        );
         // Clear rename results since no renaming is needed
         const [, setRenameResults] = this.renameResults;
         setRenameResults(new Map());
@@ -1340,17 +1412,17 @@ class FileRenamer {
       }
 
       const results = await window.electronAPI.renameFiles(renameOperations);
-      
+
       // Create results for unchanged files (mark as skipped)
       const unchangedResults = allOperations
-        .filter(op => op.originalName === op.newName)
-        .map(op => ({
+        .filter((op) => op.originalName === op.newName)
+        .map((op) => ({
           originalName: op.originalName,
           newName: op.originalName,
           success: true,
-          skipped: true
+          skipped: true,
         }));
-      
+
       this.displayResults([...results, ...unchangedResults]);
     } catch (error) {
       console.error("Rename error:", error);
@@ -1540,10 +1612,10 @@ class FileRenamer {
     createEffect(() => {
       const [getName] = fileSignal.nameSignal;
       const [getRenameResults] = this.renameResults;
-      
+
       const currentName = getName();
       const resultsMap = getRenameResults();
-      
+
       // Try to find the rename result by checking both original and new names
       let renameResult = null;
       for (const [originalName, result] of resultsMap) {
@@ -1552,7 +1624,7 @@ class FileRenamer {
           break;
         }
       }
-      
+
       // Handle rename results and show status in error column
       const hasError = renameResult && !renameResult.success;
       if (hasError && renameResult) {
