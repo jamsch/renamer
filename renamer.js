@@ -1609,18 +1609,22 @@ class FileRenamer {
         }
       }
 
-      // Handle rename results and show status in error column
-      const hasError = renameResult && !renameResult.success;
-      if (hasError && renameResult) {
-        errorCell.innerHTML = `<span class="error-icon">❌</span> ${
-          renameResult.error || "Unknown error"
-        }`;
-      } else if (renameResult && renameResult.success && renameResult.skipped) {
-        errorCell.innerHTML = `<span class="skip-icon">⏭️</span> Skipped (no changes)`;
-      } else if (renameResult && renameResult.success) {
-        errorCell.innerHTML = `<span class="success-icon">✅</span> Renamed successfully`;
-      } else {
-        errorCell.textContent = "";
+      errorCell.replaceChildren();
+      if (renameResult && !renameResult.success) {
+        errorCell.append(
+          h("span", { className: "error-icon" }, "❌"),
+          ` ${renameResult.error || "Unknown error"}`
+        );
+      } else if (renameResult?.success && renameResult.skipped) {
+        errorCell.append(
+          h("span", { className: "skip-icon" }, "⏭️"),
+          " Skipped (no changes)"
+        );
+      } else if (renameResult?.success) {
+        errorCell.append(
+          h("span", { className: "success-icon" }, "✅"),
+          " Renamed successfully"
+        );
       }
     });
 
