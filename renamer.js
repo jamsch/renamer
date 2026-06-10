@@ -113,25 +113,6 @@ class FileRenamer {
   }
 
   /**
-   * Initialize all reactive signals
-   */
-  initializeSignals() {
-    // Rule signals
-    /** @type {RuleSignalObject[]} */
-    const initialRules = [];
-    /** @type {[() => RuleSignalObject[], (v: RuleSignalObject[]) => void]} */
-    this.ruleSignals = createSignal(initialRules);
-    /** @type {[() => number | null, (v: number | null) => void]} */
-    this.selectedRuleIndex = createSignal(/** @type {number | null} */ (null));
-
-    // File signals
-    /** @type {FileSignalObject[]} */
-    const initialFiles = [];
-    /** @type {[() => FileSignalObject[], (v: FileSignalObject[]) => void]} */
-    this.fileSignals = createSignal(initialFiles);
-  }
-
-  /**
    * Create a new rule signal object
    * @returns {RuleSignalObject}
    */
