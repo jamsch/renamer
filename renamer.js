@@ -271,19 +271,21 @@ class FileRenamer {
 
     // Keyboard event listener for delete key and select all
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Delete" || e.key === "Backspace") {
-        this.removeSelectedFiles();
-      } else if (e.key === "a" && (e.ctrlKey || e.metaKey)) {
-        const activeElement = document.activeElement;
-        const isInInput =
-          activeElement &&
-          (activeElement.tagName === "INPUT" ||
-            activeElement.tagName === "TEXTAREA" ||
-            /** @type {HTMLElement} */ (activeElement).isContentEditable ===
-              true);
+      const activeElement = document.activeElement;
+      const isInEditableElement =
+        activeElement &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          /** @type {HTMLElement} */ (activeElement).isContentEditable ===
+            true);
 
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (!isInEditableElement) {
+          this.removeSelectedFiles();
+        }
+      } else if (e.key === "a" && (e.ctrlKey || e.metaKey)) {
         const [getFiles] = this.fileSignals;
-        if (!isInInput && getFiles().length > 0) {
+        if (!isInEditableElement && getFiles().length > 0) {
           e.preventDefault();
           this.selectAllFiles();
         }

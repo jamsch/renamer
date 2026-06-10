@@ -36,8 +36,8 @@ function createWindow() {
 
   mainWindow.loadFile("index.html");
 
-  // Open DevTools only in development
-  if (process.env.NODE_ENV !== "production") {
+  // Open DevTools only while running the unpackaged app during development.
+  if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }
 }
