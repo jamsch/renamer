@@ -1131,6 +1131,7 @@ class FileRenamer {
               .replace(/[^a-zA-Z0-9\-]/g, "")
               .replace(/-+/g, "")
               .replace(/^-|-$/g, "");
+          break;
         }
         case "remove-parentheses":
           nameWithoutExt = nameWithoutExt.replace(/\([^)]*\)/g, "");
