@@ -1735,7 +1735,4 @@ class FileRenamer {
 }
 
 // Initialize the application
-const fileRenamer = new FileRenamer();
-
-// Make it globally accessible for HTML onclick handlers
-window.fileRenamer = fileRenamer;
+new FileRenamer();

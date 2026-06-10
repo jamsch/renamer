@@ -39,11 +39,12 @@ function scheduleEffect(effect) {
 }
 
 function flushEffects() {
-  for (const effect of pendingEffects) {
-    effect();
-  }
+  const toRun = [...pendingEffects];
   pendingEffects.clear();
   isFlushing = false;
+  for (const effect of toRun) {
+    effect();
+  }
 }
 
 /**
