@@ -12,6 +12,15 @@ body {
   color: #333;
 }
 
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid #1a73e8;
+  outline-offset: 2px;
+}
+
 .app-container {
   background: white;
   min-height: 100vh;
@@ -25,7 +34,7 @@ body {
   border-bottom: 1px solid #ddd;
   padding: 8px;
   display: flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 .file-actions {
@@ -40,13 +49,14 @@ body {
 .toolbar-btn {
   background: #fff;
   border: 1px solid #ccc;
-  padding: 6px 12px;
+  min-height: 36px;
+  padding: 7px 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  border-radius: 3px;
+  gap: 6px;
+  font-size: 13px;
+  border-radius: 4px;
 }
 
 .toolbar-btn:hover {
@@ -70,13 +80,14 @@ body {
 .action-btn {
   background: #fff;
   border: 1px solid #ccc;
-  padding: 4px 8px;
+  min-height: 32px;
+  padding: 6px 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 3px;
-  font-size: 11px;
-  border-radius: 3px;
+  gap: 5px;
+  font-size: 12px;
+  border-radius: 4px;
   transition: background-color 0.2s;
 }
 
@@ -97,6 +108,8 @@ body {
 .file-table td input[type="checkbox"] {
   margin: 0;
   cursor: pointer;
+  min-width: 16px;
+  min-height: 16px;
 }
 
 .file-table th {
@@ -128,16 +141,17 @@ body {
 
 .rule-controls {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .rule-btn {
   background: #fff;
   border: 1px solid #ccc;
-  padding: 4px 8px;
+  min-height: 32px;
+  padding: 6px 10px;
   cursor: pointer;
   font-size: 12px;
-  border-radius: 3px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -170,17 +184,61 @@ body {
 .rules-table th {
   background: #e9ecef;
   border: 1px solid #ddd;
-  padding: 4px 8px;
+  padding: 6px 8px;
   text-align: left;
   font-weight: normal;
 }
 
 .rules-table td {
   border: 1px solid #ddd;
-  padding: 4px 8px;
+  padding: 6px 8px;
   text-align: center;
-  height: 32px;
+  height: 38px;
   vertical-align: middle;
+}
+
+.rules-table .rule-index-cell {
+  color: #4b5563;
+  padding: 4px 6px;
+}
+
+.rule-delete-btn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #8b3a4f;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 18px;
+  font-weight: 600;
+  height: 24px;
+  justify-content: center;
+  line-height: 1;
+  width: 24px;
+}
+
+.rule-delete-btn:hover {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+}
+
+.rule-action-cell {
+  padding: 0;
+  text-align: center;
+  width: 48px;
+}
+
+.rule-enabled-cell {
+  cursor: pointer;
+  padding: 0;
+}
+
+.rule-enabled-checkbox {
+  cursor: pointer;
+  height: 20px;
+  width: 20px;
 }
 
 .rules-table td.empty-message {
@@ -244,14 +302,14 @@ body {
   border-collapse: collapse;
   background: transparent;
   position: relative;
-  font-size: 12px;
+  font-size: 13px;
   table-layout: auto;
 }
 
 .file-table th {
   background: #e9ecef;
   border: 1px solid #ddd;
-  padding: 4px 8px;
+  padding: 7px 8px;
   text-align: left;
   font-weight: normal;
   position: relative;
@@ -263,7 +321,7 @@ body {
   right: 0;
   top: 0;
   bottom: 0;
-  width: 4px;
+  width: 8px;
   cursor: col-resize;
   background: transparent;
   border-right: 2px solid transparent;
@@ -283,18 +341,18 @@ body {
 
 .file-table td {
   border: 1px solid #ddd;
-  padding: 2px 4px;
-  height: 26px;
-  max-height: 26px;
-  min-height: 26px;
+  padding: 6px 8px;
+  height: 36px;
+  min-height: 36px;
   vertical-align: middle;
 }
 
 .file-table tbody tr {
-  height: 26px;
-  max-height: 26px;
-  min-height: 26px;
+  height: 36px;
+  min-height: 36px;
   user-select: none;
+  position: relative;
+  cursor: default;
 }
 
 .file-table tbody tr:hover {
@@ -302,12 +360,39 @@ body {
 }
 
 .file-table tbody tr.selected {
-  background: #e3f2fd;
-  border: 1px solid #2196f3;
+  background: #d8ecff;
+  box-shadow: inset 4px 0 0 #1976d2;
 }
 
 .file-table tbody tr.selected:hover {
-  background: #bbdefb;
+  background: #c5e2ff;
+}
+
+.file-table tbody tr.focused {
+  background: #f8fbff;
+}
+
+.file-table tbody tr.selected.focused {
+  background: #cce6ff;
+  box-shadow: inset 4px 0 0 #0b57d0;
+}
+
+.file-table tbody tr:focus-visible {
+  outline: none;
+  box-shadow: inset 0 -2px 0 #1a73e8;
+}
+
+.file-table tbody tr.selected:focus-visible {
+  box-shadow:
+    inset 4px 0 0 #0b57d0,
+    inset 0 -2px 0 #1a73e8;
+}
+
+.file-table .selection-cell {
+  width: 80px;
+  cursor: pointer;
+  padding: 0;
+  text-align: center;
 }
 
 /* Allow text selection only in original name column */
@@ -320,23 +405,36 @@ body {
 }
 
 .rule-row.selected {
-  background: #45abff;
-  color: white;
-  border: 1px solid #45abff;
+  background: #d8ecff;
+  color: #1f2933;
+  box-shadow: inset 4px 0 0 #1976d2;
 }
 
 .rule-row.selected:hover {
-  background: #45abff;
-  color: white;
+  background: #c5e2ff;
+  color: #1f2933;
+}
+
+.rule-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 -2px 0 #1a73e8;
+}
+
+.rule-row.selected:focus-visible {
+  box-shadow:
+    inset 4px 0 0 #0b57d0,
+    inset 0 -2px 0 #1a73e8;
 }
 
 .rule-inputs {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .rule-inputs .rule-input {
   flex: 1;
+  min-height: 30px;
+  padding: 4px 6px;
 }
 
 .rule-type {
@@ -388,8 +486,17 @@ body {
   font-weight: 500;
 }
 
+.file-table tbody tr.selected .new-name {
+  color: #9f1239;
+}
+
 .new-name.unchanged {
   color: #666;
+}
+
+.file-table tbody tr.selected .new-name.unchanged,
+.file-table tbody tr.selected .original-name {
+  color: #334155;
 }
 
 .error-message {

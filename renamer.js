@@ -103,6 +103,8 @@ class FileRenamer {
   ruleSignals = createSignal(/** @type {RuleSignalObject[]} */ ([]));
   selectedRuleIndex = createSignal(/** @type {number | null} */ (null));
   fileSignals = createSignal(/** @type {FileSignalObject[]} */ ([]));
+  focusedFileIndex = createSignal(/** @type {number | null} */ (null));
+  selectionAnchorIndex = createSignal(/** @type {number | null} */ (null));
 
   constructor() {
     // Initialize the UI
@@ -242,28 +244,281 @@ class FileRenamer {
       emptyRule.addEventListener("click", this.addRule.bind(this));
     }
 
-    // Keyboard event listener for delete key and select all
+    // Keyboard shortcuts are scoped to the active table so destructive actions
+    // do not fire while users are editing rule fields.
     document.addEventListener("keydown", (e) => {
-      const activeElement = document.activeElement;
-      const isInEditableElement =
-        activeElement &&
-        (activeElement.tagName === "INPUT" ||
-          activeElement.tagName === "TEXTAREA" ||
-          /** @type {HTMLElement} */ (activeElement).isContentEditable ===
-            true);
+      if (e.defaultPrevented) return;
 
-      if (e.key === "Delete" || e.key === "Backspace") {
+      const activeElement = document.activeElement;
+      const isInEditableElement = this.isEditableElement(activeElement);
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
         if (!isInEditableElement) {
-          this.removeSelectedFiles();
-        }
-      } else if (e.key === "a" && (e.ctrlKey || e.metaKey)) {
-        const [getFiles] = this.fileSignals;
-        if (!isInEditableElement && getFiles().length > 0) {
           e.preventDefault();
-          this.selectAllFiles();
+          this.addRule();
+        }
+        return;
+      }
+
+      if (!isInEditableElement && e.key === "Enter") {
+        e.preventDefault();
+        this.renameFiles();
+        return;
+      }
+
+      if (this.isRulesTableActive()) {
+        if ((e.key === "Delete" || e.key === "Backspace") && !isInEditableElement) {
+          e.preventDefault();
+          this.removeSelectedRule();
+          return;
+        }
+
+        if (!isInEditableElement && e.altKey && e.key === "ArrowUp") {
+          e.preventDefault();
+          this.moveRuleUp();
+          return;
+        }
+
+        if (!isInEditableElement && e.altKey && e.key === "ArrowDown") {
+          e.preventDefault();
+          this.moveRuleDown();
+          return;
         }
       }
+
+      if (isInEditableElement) return;
+      if (!this.isFileTableActive()) return;
+
+      const [getFiles] = this.fileSignals;
+      const files = getFiles();
+      if (files.length === 0) return;
+
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        this.moveFocusedFile(e.key === "ArrowDown" ? 1 : -1, e.shiftKey);
+      } else if (e.key === " ") {
+        e.preventDefault();
+        const [getFocusedIndex] = this.focusedFileIndex;
+        const focusedIndex = getFocusedIndex() ?? 0;
+        this.toggleFileSelection(focusedIndex);
+        this.focusFileRow(focusedIndex, { updateAnchor: true });
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        this.clearFileSelection();
+      } else if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        this.removeSelectedFiles();
+      } else if (e.key.toLowerCase() === "a" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        this.selectAllFiles();
+      }
     });
+  }
+
+  /**
+   * @param {Element | null} element
+   * @returns {boolean}
+   */
+  isEditableElement(element) {
+    if (!element) return false;
+    const tagName = element.tagName;
+    return (
+      tagName === "INPUT" ||
+      tagName === "TEXTAREA" ||
+      tagName === "SELECT" ||
+      tagName === "BUTTON" ||
+      /** @type {HTMLElement} */ (element).isContentEditable === true
+    );
+  }
+
+  /**
+   * @param {EventTarget | null} target
+   * @returns {boolean}
+   */
+  isInteractiveControl(target) {
+    return !!(
+      target instanceof Element &&
+      target.closest("input, textarea, select, button, a")
+    );
+  }
+
+  /**
+   * @returns {boolean}
+   */
+  isFileTableActive() {
+    const table = document.getElementById("fileTable");
+    const activeElement = document.activeElement;
+    return !!(
+      table &&
+      activeElement &&
+      (activeElement === table || table.contains(activeElement))
+    );
+  }
+
+  /**
+   * @returns {boolean}
+   */
+  isRulesTableActive() {
+    const table = document.getElementById("rulesTable");
+    const activeElement = document.activeElement;
+    return !!(
+      table &&
+      activeElement &&
+      (activeElement === table || table.contains(activeElement))
+    );
+  }
+
+  /**
+   * @param {number} index
+   * @param {{ updateAnchor?: boolean, preventScroll?: boolean }} [options]
+   */
+  focusFileRow(index, options = {}) {
+    const [getFiles] = this.fileSignals;
+    const files = getFiles();
+    if (files.length === 0) {
+      this.focusedFileIndex[1](null);
+      this.selectionAnchorIndex[1](null);
+      return;
+    }
+
+    const clampedIndex = Math.max(0, Math.min(index, files.length - 1));
+    this.focusedFileIndex[1](clampedIndex);
+    if (options.updateAnchor) {
+      this.selectionAnchorIndex[1](clampedIndex);
+    }
+
+    const row = document.querySelector(
+      `#fileTableBody tr[data-file-index="${clampedIndex}"]`
+    );
+    if (row instanceof HTMLElement && document.activeElement !== row) {
+      row.focus({ preventScroll: options.preventScroll ?? false });
+    }
+  }
+
+  /**
+   * @param {number} direction
+   * @param {boolean} extendSelection
+   */
+  moveFocusedFile(direction, extendSelection) {
+    const [getFiles] = this.fileSignals;
+    const files = getFiles();
+    if (files.length === 0) return;
+
+    const [getFocusedIndex] = this.focusedFileIndex;
+    const currentIndex = getFocusedIndex() ?? 0;
+    const nextIndex = Math.max(0, Math.min(currentIndex + direction, files.length - 1));
+
+    if (extendSelection) {
+      const [getAnchor, setAnchor] = this.selectionAnchorIndex;
+      const anchor = getAnchor() ?? currentIndex;
+      setAnchor(anchor);
+      this.selectFileRange(anchor, nextIndex);
+      this.focusFileRow(nextIndex, { updateAnchor: false });
+    } else {
+      this.focusFileRow(nextIndex, { updateAnchor: true });
+    }
+  }
+
+  /**
+   * @param {number} anchor
+   * @param {number} target
+   */
+  selectFileRange(anchor, target) {
+    const [getFiles] = this.fileSignals;
+    const files = getFiles();
+    const start = Math.max(0, Math.min(anchor, target));
+    const end = Math.min(files.length - 1, Math.max(anchor, target));
+
+    files.forEach((file, i) => {
+      const [, setSelected] = file.selectedSignal;
+      setSelected(i >= start && i <= end);
+    });
+  }
+
+  /**
+   * @param {number} index
+   */
+  toggleFileSelection(index) {
+    const [getFiles] = this.fileSignals;
+    const files = getFiles();
+    if (index < 0 || index >= files.length) return;
+
+    const [getSelected, setSelected] = files[index].selectedSignal;
+    setSelected(!getSelected());
+  }
+
+  /**
+   * Clear current file selection while preserving the focused row.
+   */
+  clearFileSelection() {
+    const [getFiles] = this.fileSignals;
+    getFiles().forEach((file) => {
+      const [, setSelected] = file.selectedSignal;
+      setSelected(false);
+    });
+  }
+
+  /**
+   * @returns {number}
+   */
+  getSelectedFileCount() {
+    const [getFiles] = this.fileSignals;
+    return getFiles().filter((file) => {
+      const [getSelected] = file.selectedSignal;
+      return getSelected();
+    }).length;
+  }
+
+  /**
+   * Clear stale rename results after file set changes.
+   */
+  clearRenameResults() {
+    const [, setRenameResults] = this.renameResults;
+    setRenameResults(new Map());
+  }
+
+  /**
+   * @param {number} index
+   */
+  setSelectedRuleIndex(index) {
+    const [getRules] = this.ruleSignals;
+    const rules = getRules();
+    if (rules.length === 0) {
+      this.selectedRuleIndex[1](null);
+      return;
+    }
+
+    const clampedIndex = Math.max(0, Math.min(index, rules.length - 1));
+    this.selectedRuleIndex[1](clampedIndex);
+
+    const row = document.querySelector(
+      `#rulesTableBody tr[data-rule-index="${clampedIndex}"]`
+    );
+    if (row instanceof HTMLElement && document.activeElement !== row) {
+      row.focus({ preventScroll: true });
+    }
+  }
+
+  /**
+   * @param {KeyboardEvent} e
+   * @param {number} index
+   */
+  handleRuleRowKeydown(e, index) {
+    if (this.isEditableElement(document.activeElement)) return;
+
+    if (e.altKey && e.key === "ArrowUp") {
+      e.preventDefault();
+      this.moveRuleUp();
+    } else if (e.altKey && e.key === "ArrowDown") {
+      e.preventDefault();
+      this.moveRuleDown();
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      this.setSelectedRuleIndex(index + (e.key === "ArrowDown" ? 1 : -1));
+    } else if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      this.removeSelectedRule();
+    }
   }
 
   /**
@@ -287,7 +542,7 @@ class FileRenamer {
         const emptyCell = h(
           "td",
           {
-            colSpan: 4,
+            colSpan: 5,
             className: "empty-message",
             onclick: () => this.addRule(),
           },
@@ -299,25 +554,58 @@ class FileRenamer {
       }
 
       rules.forEach((ruleSignal, i) => {
-        const numCell = h("td", null, String(i + 1));
-        const enabledInputCell = this.createRuleCheckbox(ruleSignal.enabledSignal);
+        const deleteRuleButton = h(
+          "button",
+          {
+            type: "button",
+            className: "rule-delete-btn",
+            title: "Delete rule",
+            ariaLabel: `Delete rule ${i + 1}`,
+            onclick: (e) => {
+              e.stopPropagation();
+              const [, setIndex] = this.selectedRuleIndex;
+              setIndex(i);
+              this.removeSelectedRule();
+            },
+          },
+          "−"
+        );
+        const numCell = h("td", { className: "rule-index-cell" }, String(i + 1));
+        const enabledInputCell = this.createRuleCheckbox(
+          ruleSignal.enabledSignal,
+          i
+        );
         const typeCell = this.createRuleTypeSelectCell(ruleSignal.typeSignal);
         const stmtCell = h("td", null, this.renderRuleInputs(ruleSignal));
+        const actionCell = h(
+          "td",
+          { className: "rule-action-cell" },
+          deleteRuleButton
+        );
 
         const row = h("tr", {
           className: "rule-row",
-          onclick: () => {
+          tabIndex: 0,
+          onclick: (e) => {
+            if (this.isInteractiveControl(e.target)) return;
+            this.setSelectedRuleIndex(i);
+          },
+          onfocus: () => {
             const [, setIndex] = this.selectedRuleIndex;
             setIndex(i);
           },
+          onkeydown: (e) => this.handleRuleRowKeydown(e, i),
         });
+        row.dataset.ruleIndex = String(i);
 
-        row.append(numCell, enabledInputCell, typeCell, stmtCell);
+        row.append(numCell, enabledInputCell, typeCell, stmtCell, actionCell);
         tbody.appendChild(row);
 
         createEffect(() => {
           const [getIndex] = this.selectedRuleIndex;
-          row.className = "rule-row" + (getIndex() === i ? " selected" : "");
+          const isSelected = getIndex() === i;
+          row.className = "rule-row" + (isSelected ? " selected" : "");
+          row.setAttribute("aria-selected", String(isSelected));
         });
       });
     });
@@ -377,12 +665,19 @@ class FileRenamer {
         const nameCell = this.createNameCell(fileSignal);
         const previewCell = this.createPreviewCell(fileSignal);
         const errorCell = this.createErrorCell(fileSignal);
-        const checkboxCell = this.createCheckboxCell(fileSignal);
+        const checkboxCell = this.createCheckboxCell(fileSignal, index);
 
         const row = h("tr", {
           className: "file-row",
+          tabIndex: 0,
+          onfocus: () => {
+            const [, setFocusedIndex] = this.focusedFileIndex;
+            setFocusedIndex(index);
+          },
+          onkeydown: (e) => this.handleFileRowKeydown(e, index),
           onclick: (e) => this.handleFileRowClick(e, index),
         });
+        row.dataset.fileIndex = String(index);
 
         row.append(checkboxCell, nameCell, previewCell, errorCell);
         fileTableBody.appendChild(row);
@@ -390,8 +685,15 @@ class FileRenamer {
         // Reactive updates for this row
         createEffect(() => {
           const [getSelected] = fileSignal.selectedSignal;
+          const [getFocusedIndex] = this.focusedFileIndex;
           const isSelected = getSelected();
-          row.className = "file-row" + (isSelected ? " selected" : "");
+          const isFocused = getFocusedIndex() === index;
+          row.className =
+            "file-row" +
+            (isSelected ? " selected" : "") +
+            (isFocused ? " focused" : "");
+          row.setAttribute("aria-selected", String(isSelected));
+          row.setAttribute("aria-current", isFocused ? "true" : "false");
         });
       }
     });
@@ -407,6 +709,7 @@ class FileRenamer {
           const [getSelected] = file.selectedSignal;
           getSelected(); // Track selection changes
           this.updateHeaderCheckbox();
+          this.updateStatusBar();
         });
       });
     });
@@ -418,70 +721,90 @@ class FileRenamer {
    * @param {number} index
    */
   handleFileRowClick(e, index) {
-    const [getFiles] = this.fileSignals;
-    const files = getFiles();
-
     if (e.shiftKey) {
-      // Shift selection - select range
-      const selectedIndices = files
-        .map((_, i) => i)
-        .filter((i) => {
-          const [getSelected] = files[i].selectedSignal;
-          return getSelected();
-        });
-
-      if (selectedIndices.length > 0) {
-        const firstSelected = selectedIndices[0];
-        const start = Math.min(index, firstSelected);
-        const end = Math.max(index, firstSelected);
-
-        // Clear all selections
-        files.forEach((file) => {
-          const [, setSelected] = file.selectedSignal;
-          setSelected(false);
-        });
-
-        // Select range
-        for (let i = start; i <= end; i++) {
-          const [, setSelected] = files[i].selectedSignal;
-          setSelected(true);
-        }
-      } else {
-        const [, setSelected] = files[index].selectedSignal;
-        setSelected(true);
-      }
+      const [getAnchor, setAnchor] = this.selectionAnchorIndex;
+      const anchor = getAnchor() ?? index;
+      setAnchor(anchor);
+      this.selectFileRange(anchor, index);
+      this.focusFileRow(index, { updateAnchor: false, preventScroll: true });
     } else if (e.ctrlKey || e.metaKey) {
-      // Multi-selection with Ctrl/Cmd
-      const [getSelected, setSelected] = files[index].selectedSignal;
-      const currentSelection = getSelected();
-      setSelected(!currentSelection);
+      this.toggleFileSelection(index);
+      this.focusFileRow(index, { updateAnchor: true, preventScroll: true });
     } else {
-      // Single selection
-      files.forEach((file) => {
-        const [, setSelected] = file.selectedSignal;
-        setSelected(false);
-      });
+      this.clearFileSelection();
+      const [getFiles] = this.fileSignals;
+      const files = getFiles();
       const [, setSelected] = files[index].selectedSignal;
       setSelected(true);
+      this.focusFileRow(index, { updateAnchor: true, preventScroll: true });
+    }
+  }
+
+  /**
+   * @param {KeyboardEvent} e
+   * @param {number} index
+   */
+  handleFileRowKeydown(e, index) {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      this.moveFocusedFile(e.key === "ArrowDown" ? 1 : -1, e.shiftKey);
+    } else if (e.key === " ") {
+      e.preventDefault();
+      this.toggleFileSelection(index);
+      this.focusFileRow(index, { updateAnchor: true, preventScroll: true });
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      this.clearFileSelection();
+    } else if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      this.removeSelectedFiles();
+    } else if (e.key.toLowerCase() === "a" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      this.selectAllFiles();
     }
   }
 
   /**
    * Creates a reactive checkbox input for a rule's enabled state
    * @param {[() => boolean, (v: boolean) => void]} signal
+   * @param {number} index
    * @returns {HTMLTableCellElement}
    */
-  createRuleCheckbox(signal) {
+  createRuleCheckbox(signal, index) {
     const [get, set] = signal;
     const input = h("input", {
       type: "checkbox",
+      className: "rule-enabled-checkbox",
       checked: get(),
-      onchange: () => set(input.checked),
+      title: "Enable rule",
+      onchange: () => {
+        set(input.checked);
+        this.clearRenameResults();
+      },
+      onclick: (e) => {
+        e.stopPropagation();
+        const [, setIndex] = this.selectedRuleIndex;
+        setIndex(index);
+      },
     });
     createEffect(() => {
       input.checked = get();
     });
-    return h("td", null, input);
+    return h(
+      "td",
+      {
+        className: "rule-enabled-cell",
+        onclick: (e) => {
+          if (e.target === input) return;
+          e.stopPropagation();
+          const [, setIndex] = this.selectedRuleIndex;
+          setIndex(index);
+          set(!get());
+          this.clearRenameResults();
+        },
+      },
+      input
+    );
   }
 
   /**
@@ -496,6 +819,7 @@ class FileRenamer {
       {
         onchange: () => {
           set(/** @type {typeof RULE_TYPES[number]} */ (select.value));
+          this.clearRenameResults();
         },
       },
       ...RULE_TYPES.map((type) =>
@@ -525,13 +849,19 @@ class FileRenamer {
       type: "text",
       className: "rule-input",
       placeholder: "Search text",
-      oninput: () => ruleSignals.searchSignal[1](search.value),
+      oninput: () => {
+        ruleSignals.searchSignal[1](search.value);
+        this.clearRenameResults();
+      },
     });
     const replacement = h("input", {
       type: "text",
       className: "rule-input",
       placeholder: "Replace with",
-      oninput: () => ruleSignals.replacementSignal[1](replacement.value),
+      oninput: () => {
+        ruleSignals.replacementSignal[1](replacement.value);
+        this.clearRenameResults();
+      },
     });
     createEffect(() => {
       search.value = ruleSignals.searchSignal[0]?.();
@@ -553,13 +883,19 @@ class FileRenamer {
       type: "text",
       className: "rule-input",
       placeholder: "Regex pattern",
-      oninput: () => ruleSignals.patternSignal[1](pattern.value),
+      oninput: () => {
+        ruleSignals.patternSignal[1](pattern.value);
+        this.clearRenameResults();
+      },
     });
     const replacement = h("input", {
       type: "text",
       className: "rule-input",
       placeholder: "Replace with",
-      oninput: () => ruleSignals.replacementSignal[1](replacement.value),
+      oninput: () => {
+        ruleSignals.replacementSignal[1](replacement.value);
+        this.clearRenameResults();
+      },
     });
     createEffect(() => {
       pattern.value = ruleSignals.patternSignal[0]?.();
@@ -586,10 +922,12 @@ class FileRenamer {
       "select",
       {
         className: "rule-input",
-        onchange: () =>
+        onchange: () => {
           ruleSignals.positionSignal[1](
             /** @type {"start" | "end"} */ (position.value)
-          ),
+          );
+          this.clearRenameResults();
+        },
       },
       ...options
     );
@@ -606,7 +944,10 @@ class FileRenamer {
       className: "rule-input",
       placeholder: "Count",
       min: "1",
-      oninput: () => ruleSignals.countSignal[1](parseInt(count.value) || 1),
+      oninput: () => {
+        ruleSignals.countSignal[1](parseInt(count.value) || 1);
+        this.clearRenameResults();
+      },
     });
 
     createEffect(() => {
@@ -628,7 +969,10 @@ class FileRenamer {
       type: "text",
       className: "rule-input",
       placeholder: "Prefix text",
-      oninput: () => ruleSignals.textSignal[1](prefix.value),
+      oninput: () => {
+        ruleSignals.textSignal[1](prefix.value);
+        this.clearRenameResults();
+      },
     });
     createEffect(() => {
       prefix.value = ruleSignals.textSignal[0]();
@@ -649,7 +993,10 @@ class FileRenamer {
       type: "text",
       className: "rule-input",
       placeholder: "Suffix text",
-      oninput: () => ruleSignals.textSignal[1](suffix.value),
+      oninput: () => {
+        ruleSignals.textSignal[1](suffix.value);
+        this.clearRenameResults();
+      },
     });
     createEffect(() => {
       suffix.value = ruleSignals.textSignal[0]();
@@ -672,7 +1019,10 @@ class FileRenamer {
       placeholder: "Length",
       min: "1",
       max: "100",
-      oninput: () => ruleSignals.lengthSignal[1](parseInt(length.value) || 16),
+      oninput: () => {
+        ruleSignals.lengthSignal[1](parseInt(length.value) || 16);
+        this.clearRenameResults();
+      },
     });
     createEffect(() => {
       length.value = String(ruleSignals.lengthSignal[0]());
@@ -811,7 +1161,10 @@ class FileRenamer {
    */
   addRule() {
     const [getRules, setRules] = this.ruleSignals;
-    setRules([...getRules(), this.createRuleSignals()]);
+    const rules = getRules();
+    const newIndex = rules.length;
+    setRules([...rules, this.createRuleSignals()]);
+    queueMicrotask(() => this.setSelectedRuleIndex(newIndex));
   }
 
   /**
@@ -829,7 +1182,7 @@ class FileRenamer {
     const newArr = getRules().slice();
     newArr.splice(idx, 1);
     setRules(newArr);
-    setIndex(null);
+    setIndex(newArr.length === 0 ? null : Math.min(idx, newArr.length - 1));
   }
 
   /**
@@ -1196,20 +1549,40 @@ class FileRenamer {
    * @param {File[]} files
    */
   async addFiles(files) {
-    const [, setFiles] = this.fileSignals;
-    const [, setRenameResults] = this.renameResults;
-    setRenameResults(new Map());
+    const [getFiles, setFiles] = this.fileSignals;
+    const existingFiles = getFiles();
+    const knownPaths = new Set(
+      existingFiles.map((fileSignal) => fileSignal.pathSignal[0]())
+    );
 
     const newFiles = [];
     for (const file of files) {
       const filePath = window.electronAPI.getPathForFile(file);
       const entries = await window.electronAPI.getFileEntries(filePath);
       for (const entry of entries) {
+        if (knownPaths.has(entry.path)) continue;
+        knownPaths.add(entry.path);
         newFiles.push(this.createFileSignals(entry));
       }
     }
 
-    setFiles(newFiles);
+    if (newFiles.length === 0) {
+      this.showToast("No new files were added", "warning");
+      return;
+    }
+
+    this.clearRenameResults();
+    setFiles([...existingFiles, ...newFiles]);
+
+    const [getFocusedIndex] = this.focusedFileIndex;
+    if (getFocusedIndex() === null) {
+      queueMicrotask(() => {
+        this.focusFileRow(existingFiles.length, {
+          updateAnchor: true,
+          preventScroll: true,
+        });
+      });
+    }
   }
 
   /**
@@ -1218,11 +1591,30 @@ class FileRenamer {
   removeSelectedFiles() {
     const [getFiles, setFiles] = this.fileSignals;
     const files = getFiles();
+    const selectedCount = this.getSelectedFileCount();
+    if (selectedCount === 0) return;
+
+    const [getFocusedIndex] = this.focusedFileIndex;
+    const currentFocusedIndex = getFocusedIndex() ?? 0;
     const newFiles = files.filter((file) => {
       const [getSelected] = file.selectedSignal;
       return !getSelected();
     });
+    this.clearRenameResults();
     setFiles(newFiles);
+
+    if (newFiles.length === 0) {
+      this.focusedFileIndex[1](null);
+      this.selectionAnchorIndex[1](null);
+      return;
+    }
+
+    queueMicrotask(() => {
+      this.focusFileRow(Math.min(currentFocusedIndex, newFiles.length - 1), {
+        updateAnchor: true,
+        preventScroll: true,
+      });
+    });
   }
 
   /**
@@ -1235,18 +1627,16 @@ class FileRenamer {
       const [, setSelected] = file.selectedSignal;
       setSelected(true);
     });
+    if (files.length > 0) {
+      this.selectionAnchorIndex[1](0);
+    }
   }
 
   /**
    * Deselect all files in the table
    */
   deselectAllFiles() {
-    const [getFiles] = this.fileSignals;
-    const files = getFiles();
-    files.forEach((file) => {
-      const [, setSelected] = file.selectedSignal;
-      setSelected(false);
-    });
+    this.clearFileSelection();
   }
 
   /**
@@ -1255,8 +1645,9 @@ class FileRenamer {
   clearAllFiles() {
     const [, setFiles] = this.fileSignals;
     setFiles([]);
-    const [, setRenameResults] = this.renameResults;
-    setRenameResults(new Map());
+    this.focusedFileIndex[1](null);
+    this.selectionAnchorIndex[1](null);
+    this.clearRenameResults();
   }
 
   /**
@@ -1270,6 +1661,9 @@ class FileRenamer {
       const currentSelection = getSelected();
       setSelected(!currentSelection);
     });
+    if (files.length > 0 && this.selectionAnchorIndex[0]() === null) {
+      this.selectionAnchorIndex[1](this.focusedFileIndex[0]() ?? 0);
+    }
   }
 
   /**
@@ -1418,7 +1812,14 @@ class FileRenamer {
     const fileCount = document.getElementById("fileCount");
     if (fileCount) {
       const [getFiles] = this.fileSignals;
-      fileCount.textContent = `${getFiles().length} files`;
+      const files = getFiles();
+      const selectedCount = this.getSelectedFileCount();
+      const fileLabel = files.length === 1 ? "file" : "files";
+      const selectedLabel = selectedCount === 1 ? "selected" : "selected";
+      fileCount.textContent =
+        selectedCount > 0
+          ? `${files.length} ${fileLabel}, ${selectedCount} ${selectedLabel}`
+          : `${files.length} ${fileLabel}`;
     }
   }
 
@@ -1443,20 +1844,29 @@ class FileRenamer {
   /**
    * Create a checkbox cell for file selection
    * @param {FileSignalObject} fileSignal
+   * @param {number} index
    * @returns {HTMLTableCellElement}
    */
-  createCheckboxCell(fileSignal) {
+  createCheckboxCell(fileSignal, index) {
     // Create checkbox for selection
     const checkbox = h("input", {
       type: "checkbox",
+      tabIndex: -1,
       onclick: (e) => {
-        e.stopPropagation(); // Prevent row click when clicking checkbox
-        const [, setSelected] = fileSignal.selectedSignal;
-        setSelected(checkbox.checked);
+        e.stopPropagation();
+        this.toggleFileSelection(index);
+        this.focusFileRow(index, { updateAnchor: true, preventScroll: true });
       },
     });
 
-    const checkboxCell = h("td", null, checkbox);
+    const checkboxCell = h("td", {
+      className: "selection-cell",
+      onclick: (e) => {
+        e.stopPropagation();
+        this.toggleFileSelection(index);
+        this.focusFileRow(index, { updateAnchor: true, preventScroll: true });
+      },
+    }, checkbox);
 
     // Reactive updates for this checkbox
     createEffect(() => {

@@ -19,7 +19,7 @@
         </button>
         <button class="toolbar-btn rename-btn" id="renameBtn">
           <span class="icon">✓</span>
-          Rename
+          Rename All
         </button>
       </div>
 
@@ -44,18 +44,19 @@
         </div>
 
         <div class="rules-table-container">
-          <table class="rules-table" id="rulesTable">
+          <table class="rules-table" id="rulesTable" tabindex="0">
             <thead>
               <tr>
                 <th width="30">#</th>
                 <th width="40">✓</th>
                 <th width="100">Rule</th>
                 <th>Statement</th>
+                <th width="48" aria-label="Rule actions"></th>
               </tr>
             </thead>
             <tbody id="rulesTableBody">
               <tr class="empty-rule">
-                <td colspan="4" class="empty-message">
+                <td colspan="5" class="empty-message">
                   Click here to add a rule
                 </td>
               </tr>
@@ -97,7 +98,7 @@
         />
         <div class="file-table-container" id="fileTableContainer">
           <div class="drop-zone-wrapper drop-zone" id="dropZoneWrapper">
-            <table class="file-table" id="fileTable">
+            <table class="file-table" id="fileTable" tabindex="0">
               <thead>
                 <tr>
                   <th style="width: 80px">
