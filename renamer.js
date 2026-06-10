@@ -162,12 +162,6 @@ class FileRenamer {
     const addFilesBtn = /** @type {HTMLButtonElement} */ (
       document.getElementById("addFiles")
     );
-    const addFoldersBtn = /** @type {HTMLButtonElement} */ (
-      document.getElementById("addFolders")
-    );
-    const previewBtn = /** @type {HTMLButtonElement} */ (
-      document.getElementById("preview")
-    );
     const renameBtn = /** @type {HTMLButtonElement} */ (
       document.getElementById("renameBtn")
     );
@@ -204,8 +198,6 @@ class FileRenamer {
 
     // Toolbar actions
     addFilesBtn.addEventListener("click", () => fileInput.click());
-    addFoldersBtn.addEventListener("click", this.addFolders.bind(this));
-    previewBtn.addEventListener("click", this.previewChanges.bind(this));
     renameBtn.addEventListener("click", this.renameFiles.bind(this));
 
     // Rule management
@@ -288,54 +280,9 @@ class FileRenamer {
       const rules = getRules();
       if (!tbody) return;
 
-      // Remove empty rule message if it exists
-      const emptyRule = tbody.querySelector(".empty-rule");
-      if (emptyRule && rules.length > 0) {
-        emptyRule.remove();
-      }
+      tbody.innerHTML = "";
 
-      // Remove extra rows
-      while (tbody.rows.length > rules.length + (rules.length === 0 ? 1 : 0)) {
-        tbody.deleteRow(tbody.rows.length - 1);
-      }
-
-      // Add missing rows
-      for (
-        let i = tbody.rows.length - (rules.length === 0 ? 1 : 0);
-        i < rules.length;
-        ++i
-      ) {
-        const ruleSignal = rules[i];
-        const row = h("tr", {
-          className: "rule-row",
-          onclick: () => {
-            const [, setIndex] = this.selectedRuleIndex;
-            setIndex(i);
-          },
-        });
-
-        const numCell = h("td", null);
-        const enabledInputCell = this.createRuleCheckbox(
-          ruleSignal.enabledSignal
-        );
-        const typeCell = this.createRuleTypeSelectCell(ruleSignal.typeSignal);
-        const stmtCell = h("td", null);
-
-        row.append(numCell, enabledInputCell, typeCell, stmtCell);
-        tbody.appendChild(row);
-
-        createEffect(() => {
-          const [getIndex] = this.selectedRuleIndex;
-          row.className = "rule-row" + (getIndex() === i ? " selected" : "");
-          numCell.textContent = (i + 1).toString();
-        });
-
-        const stmtInputs = this.renderRuleInputs(ruleSignal);
-        stmtCell.appendChild(stmtInputs);
-      }
-
-      // Show empty message if no rules
-      if (rules.length === 0 && !tbody.querySelector(".empty-rule")) {
+      if (rules.length === 0) {
         const emptyRow = h("tr", { className: "empty-rule" });
         const emptyCell = h(
           "td",
@@ -348,7 +295,31 @@ class FileRenamer {
         );
         emptyRow.appendChild(emptyCell);
         tbody.appendChild(emptyRow);
+        return;
       }
+
+      rules.forEach((ruleSignal, i) => {
+        const numCell = h("td", null, String(i + 1));
+        const enabledInputCell = this.createRuleCheckbox(ruleSignal.enabledSignal);
+        const typeCell = this.createRuleTypeSelectCell(ruleSignal.typeSignal);
+        const stmtCell = h("td", null, this.renderRuleInputs(ruleSignal));
+
+        const row = h("tr", {
+          className: "rule-row",
+          onclick: () => {
+            const [, setIndex] = this.selectedRuleIndex;
+            setIndex(i);
+          },
+        });
+
+        row.append(numCell, enabledInputCell, typeCell, stmtCell);
+        tbody.appendChild(row);
+
+        createEffect(() => {
+          const [getIndex] = this.selectedRuleIndex;
+          row.className = "rule-row" + (getIndex() === i ? " selected" : "");
+        });
+      });
     });
   }
 
@@ -1485,23 +1456,6 @@ class FileRenamer {
         }
       });
     }
-  }
-
-  /**
-   * Add folders functionality (placeholder)
-   */
-  addFolders() {
-    this.showToast("Add Folders functionality not yet implemented", "warning");
-  }
-
-  /**
-   * Preview changes functionality
-   */
-  previewChanges() {
-    this.showToast(
-      "Preview updated - check the file table for changes",
-      "success"
-    );
   }
 
   /**
