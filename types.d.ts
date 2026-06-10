@@ -169,10 +169,8 @@ export interface ElectronAPI {
   renameFiles: (renameOperations: RenameOperation[]) => Promise<RenameResult[]>;
   /** Open file dialog to select files */
   selectFiles: () => Promise<FileInfo[]>;
-  /** Check if a path is a directory */
-  isDirectory: (filePath: string) => Promise<boolean>;
-  /** Read contents of a folder */
-  readFolderContents: (folderPath: string) => Promise<FileInfo[]>;
+  /** Get file entries for a path — returns the file itself, or immediate children if it's a directory */
+  getFileEntries: (filePath: string) => Promise<FileInfo[]>;
 }
 
 declare global {

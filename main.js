@@ -126,43 +126,24 @@ ipcMain.handle("select-files", async () => {
   return [];
 });
 
-// Add handler for checking if path is a directory
+// Returns FileInfo[] for a path: the file itself, or the immediate children if it's a directory
 ipcMain.handle(
-  "is-directory",
+  "get-file-entries",
   async (_event, /** @type {string} */ filePath) => {
     try {
       const stats = fs.statSync(filePath);
-      return stats.isDirectory();
+      if (stats.isDirectory()) {
+        return fs
+          .readdirSync(filePath, { withFileTypes: true })
+          .filter((entry) => entry.isFile())
+          .map((entry) => {
+            const entryPath = path.join(filePath, entry.name);
+            return { name: entry.name, path: entryPath, size: fs.statSync(entryPath).size };
+          });
+      }
+      return [{ name: path.basename(filePath), path: filePath, size: stats.size }];
     } catch (error) {
-      console.error("Error checking if directory:", error);
-      return false;
-    }
-  }
-);
-
-// Add handler for reading folder contents
-ipcMain.handle(
-  "read-folder-contents",
-  async (_event, /** @type {string} */ folderPath) => {
-    try {
-      const entries = fs.readdirSync(folderPath, { withFileTypes: true });
-
-      // Filter to only include files (not subdirectories)
-      const files = entries
-        .filter((entry) => entry.isFile())
-        .map((entry) => {
-          const filePath = path.join(folderPath, entry.name);
-          const stats = fs.statSync(filePath);
-          return {
-            name: entry.name,
-            path: filePath,
-            size: stats.size,
-          };
-        });
-
-      return files;
-    } catch (error) {
-      console.error("Error reading folder contents:", error);
+      console.error("Error getting file entries:", error);
       return [];
     }
   }

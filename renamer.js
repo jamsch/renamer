@@ -1196,63 +1196,16 @@ class FileRenamer {
    * @param {File[]} files
    */
   async addFiles(files) {
-    // Clear existing files when new files are added
     const [, setFiles] = this.fileSignals;
-    const newFiles = [];
-
-    // Clear rename results when adding new files
     const [, setRenameResults] = this.renameResults;
     setRenameResults(new Map());
 
+    const newFiles = [];
     for (const file of files) {
-      let filePath = "";
-
-      try {
-        // Use the new Electron API to get file path
-        filePath = window.electronAPI.getPathForFile(file);
-      } catch (error) {
-        console.warn("Could not get file path:", error);
-      }
-
-      // Check if this is a directory (folder) using the main process
-      try {
-        const isDirectory = await window.electronAPI.isDirectory(filePath);
-
-        if (isDirectory) {
-          // This is a folder, get its contents
-          const folderFiles = await window.electronAPI.readFolderContents(
-            filePath
-          );
-          console.log(`Found folder: ${file.name}, contents:`, folderFiles);
-          folderFiles.forEach((folderFile) => {
-            newFiles.push(
-              this.createFileSignals({
-                name: folderFile.name,
-                path: folderFile.path,
-                size: folderFile.size,
-              })
-            );
-          });
-        } else {
-          // Regular file
-          newFiles.push(
-            this.createFileSignals({
-              name: file.name,
-              path: filePath,
-              size: file.size,
-            })
-          );
-        }
-      } catch (error) {
-        console.warn("Could not check if directory:", error);
-        // If we can't determine, treat it as a regular file
-        newFiles.push(
-          this.createFileSignals({
-            name: file.name,
-            path: filePath,
-            size: file.size,
-          })
-        );
+      const filePath = window.electronAPI.getPathForFile(file);
+      const entries = await window.electronAPI.getFileEntries(filePath);
+      for (const entry of entries) {
+        newFiles.push(this.createFileSignals(entry));
       }
     }
 
