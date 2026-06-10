@@ -11,6 +11,22 @@ const effects = [];
 const pendingEffects = new Set();
 let isFlushing = false;
 
+/** @type {Map<Function, Set<Set<Function>>>} */
+const effectDeps = new Map();
+
+/**
+ * @param {Function} effect
+ */
+function cleanup(effect) {
+  const deps = effectDeps.get(effect);
+  if (deps) {
+    for (const subscribers of deps) {
+      subscribers.delete(effect);
+    }
+    deps.clear();
+  }
+}
+
 /**
  * @param {Function} effect
  */
@@ -46,9 +62,11 @@ export function createSignal(value) {
   const read = () => {
     const effect = effects[effects.length - 1];
     if (effect) {
-      // We're in an effect, so subscribe to changes
-      // This is a Set, because there can be multiple reads in a single effect
       subscribers.add(effect);
+      if (!effectDeps.has(effect)) {
+        effectDeps.set(effect, new Set());
+      }
+      effectDeps.get(effect)?.add(subscribers);
     }
     return value;
   };
@@ -67,10 +85,12 @@ export function createSignal(value) {
 
 /**
  * Runs a function as an effect, subscribing it to any signals it reads.
+ * Cleans up previous subscriptions before each re-run to prevent leaks.
  * @param {Function} fn
  */
 export function createEffect(fn) {
   const effect = () => {
+    cleanup(effect);
     effects.push(effect);
     fn();
     effects.pop();
